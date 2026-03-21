@@ -30,15 +30,39 @@ self.addEventListener('activate', function(e) {
 
 // Fetch — serve from cache, fall back to network
 self.addEventListener('fetch', function(e) {
-  // For navigation requests serve index.html from cache
-  if (e.request.mode === 'navigate') {
-    e.respondWith(
-      fetch(e.request).catch(function() {
-        return caches.match('/index.html');
-      })
-    );
-    return;
-  }
+
+  e.respondWith(
+    caches.match(e.request).then(function(response) {
+      // Return cached version if exists
+      if (response) {
+        return response;
+      }
+
+      // Otherwise fetch and cache
+      return fetch(e.request).then(function(networkResponse) {
+
+        if (!networkResponse || networkResponse.status !== 200) {
+          return networkResponse;
+        }
+
+        const clone = networkResponse.clone();
+
+        caches.open(CACHE).then(function(cache) {
+          cache.put(e.request, clone);
+        });
+
+        return networkResponse;
+
+      }).catch(function() {
+        // fallback for navigation
+        if (e.request.mode === 'navigate') {
+          return caches.match('/index.html');
+        }
+      });
+
+    })
+  );
+});
 
   // For everything else — network first, cache fallback
   e.respondWith(
