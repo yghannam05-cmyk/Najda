@@ -333,7 +333,7 @@ function log(msg){
       transition:all 0.2s;
     ">SEND VERIFICATION CODE</button>
 
-    <div id="recaptcha-container" style="margin-top:12px;display:flex;justify-content:center;"></div>
+    <div id="recaptcha-container" style="margin-top:12px;display:flex;justify-content:center;min-height:78px;"></div>
     <div id="authError1" style="color:#E63946;font-size:10px;margin-top:10px;text-align:center;display:none;"></div>
   </div>
 
@@ -399,14 +399,21 @@ function log(msg){
 
   let confirmationResult = null;
   let recaptchaVerifier = null;
+  
+  // Init recaptcha immediately on page load
+  window.addEventListener('load', function() {
+    setTimeout(initRecaptcha, 500);
+  });
 
   // Init recaptcha on demand
   function initRecaptcha() {
     if (recaptchaVerifier) return;
     recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
-      size: 'invisible',
-      callback: function() { console.log('recaptcha ok'); }
+      size: 'normal',
+      callback: function() { console.log('recaptcha ok'); },
+      'expired-callback': function() { recaptchaVerifier = null; }
     });
+    recaptchaVerifier.render();
   }
 
   window.sendOTP = async function() {
@@ -439,8 +446,11 @@ function log(msg){
 
     } catch(err) {
       setLoading(false);
-      recaptchaVerifier = null;
-      setTimeout(initRecaptcha, 500);
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+        recaptchaVerifier = null;
+      }
+      setTimeout(initRecaptcha, 1000);
       let msg = 'Failed to send code. Try again.';
       if (err.code === 'auth/invalid-phone-number') msg = 'Invalid phone number format';
       if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try later.';
