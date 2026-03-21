@@ -1,0 +1,3706 @@
+<!DOCTYPE html>
+<!-- NAJDA v5.1 - cache bust -->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NAJDA نجدة — Lebanon Emergency App</title>
+<meta name="theme-color" content="#0D1117">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="NAJDA نجدة">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon.png">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
+<script>
+firebase.initializeApp({
+  apiKey: "AIzaSyC8gr9OzT0owxRupp_9yy-jIUeFAwnVEzY",
+  authDomain: "najda-bf0f9.firebaseapp.com",
+  // Also authorized: najda-lb.com, yghannam05-cmyk.github.io
+  projectId: "najda-bf0f9",
+  storageBucket: "najda-bf0f9.firebasestorage.app",
+  messagingSenderId: "64740884103",
+  appId: "1:64740884103:web:17fd09afb03db5ed57c222"
+});
+</script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --bg:#0D1117;--bg2:#161B22;--bg3:#21262D;
+  --red:#E63946;--green:#00FF88;--amber:#FFB703;--blue:#58A6FF;--purple:#9B8FE0;
+  --text:#E6EDF3;--muted:#8B949E;
+  --border:rgba(255,255,255,0.08);--border2:rgba(255,255,255,0.18);
+  --mono:'JetBrains Mono',monospace;--sans:'IBM Plex Sans Arabic',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;height:100dvh;background:var(--bg);color:var(--text);font-family:var(--sans);overscroll-behavior:none;overflow:hidden;}
+body{display:flex;flex-direction:column;max-width:430px;margin:0 auto;height:100vh;height:100dvh;}
+::-webkit-scrollbar{width:3px;}::-webkit-scrollbar-track{background:var(--bg2);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* HEADER */
+.header{background:var(--bg2);border-bottom:1px solid var(--border);padding:7px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;z-index:400;min-height:0;}
+.logo{display:flex;align-items:center;gap:7px;flex-shrink:1;min-width:0;}
+.logo-box{width:28px;height:28px;background:var(--red);border-radius:7px;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:13px;font-weight:700;color:#fff;flex-shrink:0;}
+.logo-en{font-family:var(--mono);font-size:12px;font-weight:700;letter-spacing:2px;}
+.logo-ar{font-size:8px;color:var(--muted);white-space:nowrap;}
+.hdr-right{display:flex;gap:4px;align-items:center;flex-shrink:0;}
+.online-toggle{display:flex;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;overflow:hidden;}
+.ot-btn{padding:3px 6px;font-family:var(--mono);font-size:8px;font-weight:700;cursor:pointer;letter-spacing:0.3px;color:var(--muted);border:none;background:transparent;transition:all 0.15s;white-space:nowrap;}
+.ot-btn.active{background:var(--green);color:#000;}
+.ot-btn.offline-active{background:var(--amber);color:#000;}
+.lang-btn{background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 7px;color:var(--text);font-size:10px;font-weight:700;cursor:pointer;font-family:var(--mono);flex-shrink:0;}
+.status-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 1.5s infinite;flex-shrink:0;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.2}}
+
+
+/* TICKER */
+.ticker{background:rgba(230,57,70,0.12);border-bottom:1px solid rgba(230,57,70,0.25);padding:5px 11px;display:flex;align-items:center;gap:7px;flex-shrink:0;cursor:pointer;}
+.ticker-lbl{font-family:var(--mono);font-size:9px;font-weight:700;color:var(--red);flex-shrink:0;}
+.ticker-txt{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+.ticker-src{font-family:var(--mono);font-size:9px;color:var(--muted);flex-shrink:0;}
+
+/* SCREENS */
+.screen{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.screen.active{display:flex;}
+.scr-header{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 13px;flex-shrink:0;}
+.scr-title{font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:2px;}
+.scr-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.scr-body{overflow-y:auto;flex:1;padding-bottom:75px;}
+
+/* MAP SCREEN */
+.map-screen{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+.search-bar{padding:7px 10px;background:var(--bg);border-bottom:1px solid var(--border);flex-shrink:0;}
+.search-row{display:flex;gap:6px;margin-bottom:6px;}
+.search-input{flex:1;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:8px 11px;font-size:12px;color:var(--text);font-family:var(--sans);outline:none;}
+.search-input:focus{border-color:var(--red);}
+.search-input::placeholder{color:var(--muted);}
+.search-btn{background:var(--red);border:none;border-radius:7px;padding:8px 13px;color:#fff;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans);}
+
+/* FILTER ROWS */
+.filter-row{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px;}
+.filter-row::-webkit-scrollbar{display:none;}
+.filter-row+.filter-row{margin-top:4px;}
+.chip{border:1px solid var(--border2);background:var(--bg2);border-radius:20px;padding:3px 9px;font-size:9px;font-weight:700;color:var(--muted);cursor:pointer;white-space:nowrap;font-family:var(--mono);transition:all 0.15s;flex-shrink:0;letter-spacing:0.3px;}
+.chip.active{background:rgba(230,57,70,0.15);border-color:var(--red);color:var(--red);}
+.chip.poi-on{background:rgba(88,166,255,0.15);border-color:var(--blue);color:var(--blue);}
+
+/* MAP CONTAINER */
+.map-wrap{position:relative;flex:1;display:flex;flex-direction:column;min-height:0;}
+#map{flex:1;min-height:0;width:100%;}
+
+/* MAP LEGEND */
+.map-legend{position:absolute;right:8px;top:8px;background:rgba(10,14,20,0.96);border:1px solid rgba(255,255,255,0.18);border-radius:10px;padding:0;z-index:500;min-width:130px;box-shadow:0 4px 16px rgba(0,0,0,0.7);overflow:hidden;transition:all 0.2s;}
+.legend-header{display:flex;align-items:center;justify-content:space-between;padding:7px 10px 5px;border-bottom:1px solid rgba(255,255,255,0.08);cursor:pointer;}
+.legend-title{font-family:var(--mono);font-size:9px;color:#58A6FF;letter-spacing:1.5px;font-weight:700;}
+.legend-toggle{font-family:var(--mono);font-size:9px;color:var(--muted);cursor:pointer;}
+.legend-body{padding:6px 10px 8px;}
+.legend-item{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-size:10px;color:#E6EDF3;font-weight:500;}
+.legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;box-shadow:0 0 4px rgba(255,255,255,0.15);}
+.legend-divider{height:1px;background:rgba(255,255,255,0.06);margin:5px 0;}
+.legend-poi-item{display:flex;align-items:center;gap:6px;margin-bottom:3px;font-size:9px;color:#8B949E;}
+
+/* MAP LOADING */
+.map-loading{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);background:rgba(13,17,23,0.9);border:1px solid var(--border2);border-radius:20px;padding:4px 12px;font-family:var(--mono);font-size:9px;color:var(--text);z-index:600;display:none;white-space:nowrap;}
+
+/* DANGER ZONE STYLE */
+.leaflet-danger-zone{stroke:#E63946;stroke-width:2;stroke-dasharray:6,3;fill:#E63946;fill-opacity:0.12;}
+
+/* VIEW TOGGLE */
+.view-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.vt{flex:1;padding:7px;text-align:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;letter-spacing:0.5px;}
+.vt.active{color:var(--red);border-bottom-color:var(--red);}
+
+/* LIST */
+.list-wrap{flex:1;overflow-y:auto;padding:0 9px 9px;}
+.aid-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;margin-bottom:7px;cursor:pointer;animation:fadeUp 0.2s ease both;overflow:hidden;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.aid-card:hover{border-color:var(--border2);}
+.aid-card.selected{border-color:var(--red);}
+.card-main{padding:10px 11px;display:flex;gap:8px;}
+.card-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.card-name{font-size:12px;font-weight:700;color:var(--text);margin-bottom:1px;}
+.card-loc{font-size:10px;color:var(--muted);}
+.card-dist{font-family:var(--mono);font-size:9px;color:var(--blue);font-weight:700;margin-top:2px;}
+.card-tags{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;}
+.tag{font-size:9px;border-radius:3px;padding:2px 5px;font-weight:700;font-family:var(--mono);}
+.tag.open{background:rgba(0,255,136,0.1);color:var(--green);border:1px solid rgba(0,255,136,0.25);}
+.tag.limited{background:rgba(255,183,3,0.1);color:var(--amber);border:1px solid rgba(255,183,3,0.25);}
+.tag.closed{background:rgba(139,148,158,0.08);color:var(--muted);border:1px solid var(--border);}
+.tag.type{background:var(--bg3);color:var(--muted);border:1px solid var(--border);}
+.tag.verified{background:rgba(0,255,136,0.08);color:var(--green);border:1px solid rgba(0,255,136,0.2);}
+.tag.pending{background:rgba(255,183,3,0.08);color:var(--amber);border:1px solid rgba(255,183,3,0.2);}
+.card-expand{padding:0 11px 10px;border-top:1px solid var(--border);}
+.aid-card.selected .card-expand{display:block;}
+.aid-card:not(.selected) .card-expand{display:none;}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin:8px 0;}
+.info-item{background:var(--bg3);border-radius:6px;padding:6px 8px;}
+.info-lbl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:1px;}
+.info-val{font-size:11px;font-weight:600;color:var(--text);}
+.info-block{background:var(--bg3);border-radius:6px;padding:6px 8px;margin-bottom:6px;}
+.act-row{display:flex;gap:5px;}
+.act-btn{flex:1;padding:8px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--sans);border:none;display:flex;align-items:center;justify-content:center;gap:4px;text-decoration:none;transition:opacity 0.15s;}
+.act-btn.call{background:var(--red);color:#fff;flex:2;}
+.act-btn.nav{background:rgba(88,166,255,0.12);border:1px solid rgba(88,166,255,0.25);color:var(--blue);}
+.act-btn.fav{background:var(--bg3);border:1px solid var(--border2);color:var(--text);flex:0 0 36px;font-size:14px;}
+.empty{text-align:center;padding:25px 15px;color:var(--muted);font-size:12px;line-height:1.8;}
+.empty-icon{font-size:28px;margin-bottom:6px;}
+
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--bg2);border-top:1px solid var(--border);display:flex;z-index:800;padding:4px 0 9px;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;padding:3px;position:relative;}
+.nav-icon{font-size:17px;}
+.nav-lbl{font-size:8px;font-family:var(--mono);color:var(--muted);}
+.nav-item.active .nav-lbl{color:var(--red);}
+.nav-badge{position:absolute;top:0;right:calc(50% - 15px);min-width:13px;height:13px;background:var(--red);border-radius:7px;font-size:8px;color:#fff;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 3px;font-family:var(--mono);}
+
+/* ALERTS */
+.alert-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.at{flex:1;padding:7px 3px;text-align:center;font-family:var(--mono);font-size:9px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;}
+.at.active{color:var(--red);border-bottom-color:var(--red);}
+.alert-item{margin:0 9px 7px;border-radius:9px;padding:10px 11px;border-left:3px solid;}
+.alert-item.critical{border-color:var(--red);background:rgba(230,57,70,0.06);}
+.alert-item.warning{border-color:var(--amber);background:rgba(255,183,3,0.06);}
+.alert-item.info{border-color:var(--blue);background:rgba(88,166,255,0.06);}
+.al-level{font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:1px;margin-bottom:3px;}
+.al-level.critical{color:var(--red);}
+.al-level.warning{color:var(--amber);}
+.al-level.info{color:var(--blue);}
+.al-text{font-size:12px;line-height:1.6;}
+.al-desc{font-size:11px;color:var(--muted);margin-top:3px;line-height:1.5;}
+.al-meta{display:flex;justify-content:space-between;margin-top:5px;font-family:var(--mono);font-size:9px;color:var(--muted);}
+.src-badge{border-radius:3px;padding:1px 5px;font-size:8px;font-family:var(--mono);font-weight:700;}
+.src-news{background:rgba(88,166,255,0.1);border:1px solid rgba(88,166,255,0.2);color:var(--blue);}
+.src-field{background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.2);color:var(--red);}
+.read-more{font-size:9px;color:var(--blue);font-family:var(--mono);text-decoration:none;display:inline-block;margin-top:4px;}
+
+/* CONTACTS */
+.contact-item{background:var(--bg2);border:1px solid var(--border);border-radius:9px;padding:10px 11px;margin:0 9px 6px;display:flex;align-items:center;gap:9px;}
+.ci-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.ci-red{background:rgba(230,57,70,0.15);}
+.ci-blue{background:rgba(88,166,255,0.15);}
+.ci-green{background:rgba(0,255,136,0.1);}
+.ci-amber{background:rgba(255,183,3,0.1);}
+.ci-name{font-size:12px;font-weight:700;}
+.ci-num{font-family:var(--mono);font-size:11px;color:var(--muted);margin-top:1px;}
+.ci-desc{font-size:10px;color:var(--muted);}
+.call-btn{background:var(--red);border:none;border-radius:6px;padding:7px 10px;color:#fff;font-size:10px;font-weight:700;cursor:pointer;text-decoration:none;display:block;font-family:var(--sans);white-space:nowrap;}
+
+/* HELP */
+.help-tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ht{flex:1;padding:8px 2px;text-align:center;font-family:var(--mono);font-size:8px;font-weight:700;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;letter-spacing:0.3px;}
+.ht.active{color:var(--red);border-bottom-color:var(--red);}
+.form-wrap{padding:10px 11px 0;}
+.fl{font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px;display:block;}
+.fi,.fs,.ft{width:100%;background:var(--bg2);border:1px solid var(--border2);border-radius:7px;padding:9px 10px;font-size:12px;color:var(--text);font-family:var(--sans);outline:none;margin-bottom:8px;}
+.fi:focus,.fs:focus,.ft:focus{border-color:var(--red);}
+.fi::placeholder,.ft::placeholder{color:var(--muted);}
+.ft{resize:vertical;min-height:65px;line-height:1.5;}
+.fs{appearance:none;}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+.submit-btn{width:100%;background:var(--red);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--mono);letter-spacing:1px;margin-top:2px;}
+.submit-btn:disabled{opacity:0.5;cursor:not-allowed;}
+.form-note{font-size:10px;color:var(--muted);text-align:center;margin-top:6px;line-height:1.6;}
+.success{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);border-radius:8px;padding:11px;text-align:center;font-size:12px;color:var(--green);margin-bottom:8px;}
+.divider-lbl{font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:2px;padding:8px 12px 4px;}
+.vol-card{background:var(--bg2);border:1px solid rgba(0,255,136,0.2);border-radius:9px;padding:10px 11px;margin:0 9px 6px;animation:fadeUp 0.2s ease both;}
+.vol-name{font-size:12px;font-weight:700;}
+.vol-type{font-family:var(--mono);font-size:9px;color:var(--green);margin-top:1px;}
+.vol-desc{font-size:11px;color:var(--text);margin-top:3px;line-height:1.5;}
+.vol-call{background:rgba(0,255,136,0.1);border:1px solid rgba(0,255,136,0.3);color:var(--green);border-radius:5px;padding:5px 10px;font-size:10px;font-weight:700;text-decoration:none;display:inline-block;margin-top:5px;font-family:var(--sans);}
+
+/* SETTINGS */
+.setting-item{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:11px 12px;margin:0 9px 6px;display:flex;align-items:center;justify-content:space-between;}
+.s-label{font-size:12px;font-weight:600;}
+.s-desc{font-size:10px;color:var(--muted);margin-top:1px;}
+.toggle{width:36px;height:20px;background:var(--bg3);border-radius:10px;position:relative;cursor:pointer;border:1px solid var(--border2);transition:background 0.2s;flex-shrink:0;}
+.toggle.on{background:var(--red);}
+.toggle-thumb{position:absolute;width:14px;height:14px;background:#fff;border-radius:50%;top:2px;left:2px;transition:transform 0.2s;}
+.toggle.on .toggle-thumb{transform:translateX(16px);}
+.sz-item{background:var(--bg2);border:1px solid rgba(0,255,136,0.2);border-radius:8px;padding:9px 11px;margin:0 9px 5px;}
+.sz-name{font-size:12px;font-weight:700;color:var(--green);}
+.sz-addr{font-size:10px;color:var(--muted);margin-top:1px;}
+.sz-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
+.sz-tag{font-family:var(--mono);font-size:8px;background:rgba(0,255,136,0.08);color:var(--green);border:1px solid rgba(0,255,136,0.2);border-radius:3px;padding:2px 5px;}
+.loading{text-align:center;padding:18px;color:var(--muted);font-family:var(--mono);font-size:10px;letter-spacing:1px;}
+
+/* MODAL */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:2000;align-items:center;justify-content:center;max-width:430px;margin:0 auto;}
+.modal-bg.show{display:flex;}
+.modal{background:var(--bg2);border:1px solid var(--red);border-radius:12px;padding:20px;width:calc(100% - 32px);}
+.modal-title{font-family:var(--mono);font-size:14px;font-weight:700;color:var(--red);letter-spacing:2px;text-align:center;margin-bottom:4px;}
+.modal-sub{font-size:11px;color:var(--muted);text-align:center;margin-bottom:13px;}
+.modal-info{background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:12px;}
+.modal-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--border);}
+.modal-row:last-child{border:none;}
+.modal-key{color:var(--muted);font-family:var(--mono);font-size:9px;}
+.modal-val{font-family:var(--mono);font-size:10px;}
+.modal-confirm{background:var(--red);border:none;border-radius:8px;padding:11px;color:#fff;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--mono);letter-spacing:1px;width:100%;margin-bottom:6px;}
+.modal-cancel{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:10px;color:var(--muted);font-size:11px;cursor:pointer;width:100%;font-family:var(--sans);}
+
+/* LEAFLET POPUP */
+.leaflet-popup-content-wrapper{background:var(--bg2)!important;color:var(--text)!important;border:1px solid var(--border2)!important;border-radius:10px!important;box-shadow:0 4px 20px rgba(0,0,0,0.6)!important;font-family:var(--sans)!important;}
+.leaflet-popup-tip{background:var(--bg2)!important;}
+.leaflet-popup-content{margin:10px 13px!important;font-size:12px!important;line-height:1.5!important;min-width:160px;}
+.popup-name{font-weight:700;font-size:13px;color:var(--text);margin-bottom:3px;}
+.popup-addr{color:var(--muted);font-size:11px;margin-bottom:2px;}
+.popup-hours{color:var(--muted);font-size:10px;margin-bottom:4px;}
+.popup-tags{display:flex;gap:3px;flex-wrap:wrap;margin-bottom:6px;}
+.popup-tag{font-family:var(--mono);font-size:9px;border-radius:3px;padding:2px 5px;}
+.popup-call{display:inline-block;margin-top:4px;background:var(--red);color:#fff;border-radius:5px;padding:5px 11px;font-size:11px;font-weight:700;text-decoration:none;font-family:var(--sans);}
+.popup-nav{display:inline-block;margin-top:4px;margin-left:5px;background:rgba(88,166,255,0.15);border:1px solid rgba(88,166,255,0.3);color:var(--blue);border-radius:5px;padding:5px 11px;font-size:11px;font-weight:700;text-decoration:none;}
+.leaflet-control-zoom a{background:var(--bg2)!important;color:var(--text)!important;border-color:var(--border2)!important;}
+@keyframes dangerPulse{0%,100%{fill-opacity:0.1;stroke-opacity:0.5}50%{fill-opacity:0.3;stroke-opacity:1}}
+.leaflet-control-attribution{background:rgba(0,0,0,0.7)!important;color:var(--muted)!important;font-size:7px!important;}
+</style>
+<script>
+const isAndroidApp = !!window.Android;
+
+function log(msg){
+  if(isAndroidApp && window.Android && Android.log){
+    Android.log(msg);
+  } else {
+    console.log(msg);
+  }
+}
+</script>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════ -->
+<!-- PHONE VERIFICATION SCREEN             -->
+<!-- ══════════════════════════════════════ -->
+<div id="authScreen" style="
+  position:fixed; inset:0; z-index:99999;
+  background:#0D1117;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding:24px; font-family:'JetBrains Mono',monospace;
+">
+  <!-- Logo -->
+  <div style="margin-bottom:32px; text-align:center;">
+    <div style="width:64px;height:64px;background:#E63946;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:28px;font-weight:700;color:#fff;margin:0 auto 12px;">N</div>
+    <div style="font-size:20px;font-weight:700;color:#E6EDF3;letter-spacing:3px;">NAJDA</div>
+    <div style="font-size:10px;color:#8B949E;margin-top:4px;letter-spacing:1px;">نجدة — Lebanon Emergency App</div>
+  </div>
+
+  <!-- STEP 1: Phone number -->
+  <div id="authStep1" style="width:100%;max-width:340px;">
+    <div style="font-size:11px;color:#8B949E;margin-bottom:16px;text-align:center;letter-spacing:1px;">ENTER YOUR PHONE NUMBER TO CONTINUE</div>
+    
+    <div style="display:flex;gap:8px;margin-bottom:12px;">
+      <div style="background:#161B22;border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:12px;color:#E6EDF3;font-size:14px;flex-shrink:0;display:flex;align-items:center;gap:6px;">
+        🇱🇧 <span style="color:#8B949E">+961</span>
+      </div>
+      <input id="phoneInput" type="tel" placeholder="XX XXX XXX" style="
+        flex:1;background:#161B22;border:1px solid rgba(255,255,255,0.18);
+        border-radius:8px;padding:12px;color:#E6EDF3;font-size:16px;
+        font-family:'JetBrains Mono',monospace;outline:none;
+        transition:border-color 0.2s;
+      " oninput="this.style.borderColor='#E63946'" />
+    </div>
+
+    <div style="font-size:9px;color:#8B949E;margin-bottom:16px;text-align:center;">
+      Also works with non-Lebanese numbers — just change the country code
+    </div>
+
+    <div id="authCountryRow" style="display:flex;gap:8px;margin-bottom:16px;">
+      <select id="countryCode" style="background:#161B22;border:1px solid rgba(255,255,255,0.18);border-radius:8px;padding:10px;color:#E6EDF3;font-size:12px;font-family:'JetBrains Mono',monospace;outline:none;flex:1;">
+        <option value="+961">🇱🇧 Lebanon +961</option>
+        <option value="+963">🇸🇾 Syria +963</option>
+        <option value="+962">🇯🇴 Jordan +962</option>
+        <option value="+20">🇪🇬 Egypt +20</option>
+        <option value="+966">🇸🇦 Saudi +966</option>
+        <option value="+971">🇦🇪 UAE +971</option>
+        <option value="+49">🇩🇪 Germany +49</option>
+        <option value="+33">🇫🇷 France +33</option>
+        <option value="+44">🇬🇧 UK +44</option>
+        <option value="+1">🇺🇸 USA +1</option>
+        <option value="+90">🇹🇷 Turkey +90</option>
+        <option value="+55">🇧🇷 Brazil +55</option>
+      </select>
+    </div>
+
+    <button id="sendOTPBtn" onclick="sendOTP()" style="
+      width:100%;background:#E63946;color:#fff;border:none;
+      border-radius:8px;padding:14px;font-size:13px;font-weight:700;
+      cursor:pointer;letter-spacing:1px;font-family:'JetBrains Mono',monospace;
+      transition:all 0.2s;
+    ">SEND VERIFICATION CODE</button>
+
+    <div id="recaptcha-container" style="margin-top:12px;display:flex;justify-content:center;min-height:78px;"></div>
+    <div id="authError1" style="color:#E63946;font-size:10px;margin-top:10px;text-align:center;display:none;"></div>
+  </div>
+
+  <!-- STEP 2: OTP code -->
+  <div id="authStep2" style="width:100%;max-width:340px;display:none;">
+    <div style="font-size:11px;color:#8B949E;margin-bottom:8px;text-align:center;letter-spacing:1px;">ENTER 6-DIGIT CODE</div>
+    <div id="authSentTo" style="font-size:10px;color:#58A6FF;margin-bottom:16px;text-align:center;"></div>
+    
+    <input id="otpInput" type="number" placeholder="000000" maxlength="6" style="
+      width:100%;background:#161B22;border:1px solid rgba(255,255,255,0.18);
+      border-radius:8px;padding:14px;color:#E6EDF3;font-size:24px;
+      font-family:'JetBrains Mono',monospace;outline:none;text-align:center;
+      letter-spacing:8px;margin-bottom:12px;
+      transition:border-color 0.2s;
+    " oninput="this.style.borderColor='#00FF88';if(this.value.length===6)verifyOTP()" />
+
+    <button id="verifyBtn" onclick="verifyOTP()" style="
+      width:100%;background:#00FF88;color:#000;border:none;
+      border-radius:8px;padding:14px;font-size:13px;font-weight:700;
+      cursor:pointer;letter-spacing:1px;font-family:'JetBrains Mono',monospace;
+      margin-bottom:10px;
+    ">VERIFY & ENTER →</button>
+
+    <button onclick="backToPhone()" style="
+      width:100%;background:transparent;color:#8B949E;
+      border:1px solid rgba(255,255,255,0.1);
+      border-radius:8px;padding:10px;font-size:11px;
+      cursor:pointer;font-family:'JetBrains Mono',monospace;
+    ">← CHANGE NUMBER</button>
+
+    <div id="authError2" style="color:#E63946;font-size:10px;margin-top:10px;text-align:center;display:none;"></div>
+    
+    <div id="resendRow" style="text-align:center;margin-top:12px;display:none;">
+      <span style="font-size:10px;color:#8B949E;">Didn't receive it? </span>
+      <span onclick="sendOTP()" style="font-size:10px;color:#58A6FF;cursor:pointer;text-decoration:underline;">Resend code</span>
+    </div>
+  </div>
+
+  <!-- Loading state -->
+  <div id="authLoading" style="display:none;text-align:center;margin-top:16px;">
+    <div style="width:24px;height:24px;border:2px solid rgba(230,57,70,0.3);border-top-color:#E63946;border-radius:50%;animation:spin 0.8s linear infinite;margin:0 auto 8px;"></div>
+    <div id="authLoadingTxt" style="font-size:10px;color:#8B949E;letter-spacing:1px;">SENDING CODE...</div>
+  </div>
+
+  <div style="position:absolute;bottom:20px;font-size:8px;color:#3A4A5A;text-align:center;letter-spacing:0.5px;">
+    Your number is only used for verification · Never shared
+  </div>
+</div>
+
+<style>
+@keyframes spin { to { transform:rotate(360deg); } }
+#phoneInput:focus { border-color:#E63946 !important; }
+#otpInput:focus { border-color:#00FF88 !important; }
+</style>
+
+<script>
+(function() {
+  // Check if already verified
+  if (localStorage.getItem('najda_verified') === 'true') {
+    document.getElementById('authScreen').style.display = 'none';
+    return;
+  }
+
+  let confirmationResult = null;
+  let recaptchaVerifier = null;
+  
+  // Wait for Firebase then init recaptcha
+  window.addEventListener('load', async function() {
+    try {
+      await loadFirebase();
+      console.log('Firebase ready, initializing recaptcha...');
+      setTimeout(initRecaptcha, 300);
+    } catch(e) {
+      console.error('Firebase load failed:', e);
+      showError(1, 'Failed to load. Please refresh the page.');
+    }
+  });
+
+  // Init recaptcha on demand
+  function initRecaptcha() {
+    if (recaptchaVerifier) return;
+    try {
+      recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha-container', {
+        size: 'normal',
+        callback: function() { 
+          console.log('recaptcha solved');
+          document.getElementById('sendOTPBtn').style.opacity = '1';
+        },
+        'expired-callback': function() { 
+          recaptchaVerifier = null;
+          setTimeout(initRecaptcha, 500);
+        }
+      });
+      recaptchaVerifier.render().then(function(widgetId) {
+        window.recaptchaWidgetId = widgetId;
+        console.log('recaptcha rendered:', widgetId);
+      });
+    } catch(e) {
+      console.error('recaptcha init error:', e);
+    }
+  }
+
+  window.sendOTP = async function() {
+    const phone = document.getElementById('phoneInput').value.trim().replace(/\s/g,'');
+    const code = document.getElementById('countryCode').value;
+    
+    if (!phone || phone.length < 7) {
+      showError(1, 'Please enter a valid phone number');
+      return;
+    }
+
+    const fullPhone = code + phone;
+    setLoading(true, 'SENDING CODE...');
+    hideError(1);
+
+    try {
+      if (!recaptchaVerifier) { 
+        initRecaptcha(); 
+        await new Promise(r => setTimeout(r, 1000));
+      }
+      if (!window.firebaseReady) {
+        showError(1, 'Still loading. Please wait a moment and try again.');
+        setLoading(false);
+        return;
+      }
+      console.log('Sending OTP to:', fullPhone);
+      confirmationResult = await firebase.auth().signInWithPhoneNumber(fullPhone, recaptchaVerifier);
+      
+      setLoading(false);
+      document.getElementById('authStep1').style.display = 'none';
+      document.getElementById('authStep2').style.display = 'block';
+      document.getElementById('authSentTo').textContent = 'Code sent to ' + fullPhone;
+      document.getElementById('otpInput').focus();
+      
+      // Show resend after 30 seconds
+      setTimeout(() => {
+        document.getElementById('resendRow').style.display = 'block';
+      }, 30000);
+
+    } catch(err) {
+      setLoading(false);
+      if (recaptchaVerifier) {
+        recaptchaVerifier.clear();
+        recaptchaVerifier = null;
+      }
+      setTimeout(initRecaptcha, 1000);
+      let msg = 'Failed to send code. Try again.';
+      if (err.code === 'auth/invalid-phone-number') msg = 'Invalid phone number format';
+      if (err.code === 'auth/too-many-requests') msg = 'Too many attempts. Try later.';
+      showError(1, msg);
+      console.error(err);
+    }
+  };
+
+  window.verifyOTP = async function() {
+    if (!window.firebaseReady) { showError(2, 'Still loading. Please refresh.'); return; }
+    const code = document.getElementById('otpInput').value.trim();
+    if (!code || code.length !== 6) {
+      showError(2, 'Enter the 6-digit code');
+      return;
+    }
+
+    setLoading(true, 'VERIFYING...');
+    hideError(2);
+
+    try {
+      await confirmationResult.confirm(code);
+      
+      // Success — save verification and hide auth screen
+      localStorage.setItem('najda_verified', 'true');
+      localStorage.setItem('najda_phone', firebase.auth().currentUser.phoneNumber);
+      
+      setLoading(false);
+      
+      // Fade out auth screen
+      const screen = document.getElementById('authScreen');
+      screen.style.transition = 'opacity 0.5s';
+      screen.style.opacity = '0';
+      setTimeout(() => { screen.style.display = 'none'; }, 500);
+
+    } catch(err) {
+      setLoading(false);
+      let msg = 'Wrong code. Try again.';
+      if (err.code === 'auth/code-expired') msg = 'Code expired. Request a new one.';
+      showError(2, msg);
+    }
+  };
+
+  window.backToPhone = function() {
+    document.getElementById('authStep2').style.display = 'none';
+    document.getElementById('authStep1').style.display = 'block';
+    document.getElementById('otpInput').value = '';
+    confirmationResult = null;
+  };
+
+  function setLoading(show, txt) {
+    document.getElementById('authLoading').style.display = show ? 'block' : 'none';
+    if (txt) document.getElementById('authLoadingTxt').textContent = txt;
+    document.getElementById('sendOTPBtn') && (document.getElementById('sendOTPBtn').disabled = show);
+    document.getElementById('verifyBtn') && (document.getElementById('verifyBtn').disabled = show);
+  }
+
+  function showError(step, msg) {
+    const el = document.getElementById('authError' + step);
+    if (el) { el.textContent = msg; el.style.display = 'block'; }
+  }
+
+  function hideError(step) {
+    const el = document.getElementById('authError' + step);
+    if (el) el.style.display = 'none';
+  }
+})();
+</script>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">
+    <div class="logo-box" style="width:34px;height:34px;background:transparent;border:none;padding:0;flex-shrink:0">
+  <svg viewBox="0 0 34 34" xmlns="http://www.w3.org/2000/svg" width="34" height="34">
+    <path d="M17 2 L30 7 L30 18 C30 25 24 30 17 33 C10 30 4 25 4 18 L4 7 Z" fill="#E63946" stroke="rgba(255,255,255,0.25)" stroke-width="0.8"/>
+    <path d="M17 5 L27 9 L27 18 C27 23.5 22.5 27.8 17 30.5 C11.5 27.8 7 23.5 7 18 L7 9 Z" fill="rgba(255,255,255,0.06)"/>
+    <text x="17" y="22" text-anchor="middle" font-family="IBM Plex Sans Arabic,sans-serif" font-size="9.5" font-weight="700" fill="white">نجدة</text>
+  </svg>
+</div>
+    <div><div class="logo-en">NAJDA</div><div class="logo-ar">نجدة — Lebanon Emergency</div></div>
+  </div>
+  <div class="hdr-right">
+    <div class="online-toggle">
+      <button class="ot-btn active" id="btn-online" onclick="setMode('online')">🌐 ONLINE</button>
+      <button class="ot-btn" id="btn-offline" onclick="setMode('offline')">📵 OFFLINE</button>
+    </div>
+    <div class="status-dot" id="statusDot"></div>
+    <button id="accBtn" onclick="openAccount()" style="background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:3px 7px;color:var(--text);font-size:13px;cursor:pointer;flex-shrink:0;">👤</button>
+    <button class="lang-btn" id="langBtn" onclick="toggleLang()">عر</button>
+  </div>
+</div>
+
+<!-- SOS -->
+<!-- TICKER -->
+<div style="display:flex;align-items:center;background:rgba(230,57,70,0.12);border-bottom:1px solid rgba(230,57,70,0.25);flex-shrink:0;">
+  <div class="ticker" onclick="showTab('alerts')" style="flex:1;border:none;background:transparent;padding:5px 11px">
+    <div class="ticker-lbl">⚡ LIVE</div>
+    <div class="ticker-txt" id="tickerTxt">Loading news...</div>
+    <div class="ticker-src" id="tickerSrc"></div>
+  </div>
+</div>
+
+<!-- MAP SCREEN -->
+<div id="screen-map" class="screen active">
+  <div class="map-screen">
+    <div class="search-bar">
+      <div class="search-row">
+        <input class="search-input" id="searchInput" placeholder="Search aid, hospital, street, city..." oninput="onSearch()">
+        <button class="search-btn" id="searchBtn" data-en="Search" data-ar="بحث" onclick="onSearch()">Search</button>
+      </div>
+      <!-- Aid filters -->
+      <div class="filter-row">
+        <span style="font-family:var(--mono);font-size:8px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;letter-spacing:1px" data-en="AID:" data-ar="مساعدة:">AID:</span>
+        <button class="chip active" id="af-all" data-en="ALL" data-ar="الكل" onclick="setAidFilter('all',this)">ALL</button>
+        <button class="chip" id="af-food" data-en="🍱 FOOD" data-ar="🍱 طعام" onclick="setAidFilter('food',this)">🍱 FOOD</button>
+        <button class="chip" id="af-medical" data-en="🩺 MEDICAL" data-ar="🩺 طبي" onclick="setAidFilter('medical',this)">🩺 MEDICAL</button>
+        <button class="chip" id="af-water" data-en="💧 WATER" data-ar="💧 مياه" onclick="setAidFilter('water',this)">💧 WATER</button>
+        <button class="chip" id="af-shelter" data-en="🏠 SHELTER" data-ar="🏠 مأوى" onclick="setAidFilter('shelter',this)">🏠 SHELTER</button>
+        <button class="chip" id="af-safezone" data-en="🛡️ SAFE" data-ar="🛡️ آمن" onclick="setAidFilter('safezone',this)">🛡️ SAFE</button>
+      </div>
+      <!-- POI filters -->
+      <div class="filter-row">
+        <span style="font-family:var(--mono);font-size:8px;color:var(--muted);flex-shrink:0;display:flex;align-items:center;letter-spacing:1px" data-en="MAP:" data-ar="خريطة:">MAP:</span>
+        <button class="chip" id="poi-hospitals" data-en="🏥 HOSPITALS" data-ar="🏥 مستشفيات" onclick="togglePOI('hospitals',this)">🏥 HOSPITALS</button>
+        <button class="chip" id="poi-pharmacies" data-en="💊 PHARMACY" data-ar="💊 صيدليات" onclick="togglePOI('pharmacies',this)">💊 PHARMACY</button>
+        <button class="chip" id="poi-restaurants" data-en="🍽️ FOOD" data-ar="🍽️ مطاعم" onclick="togglePOI('restaurants',this)">🍽️ FOOD</button>
+        <button class="chip" id="poi-mosques" data-en="🕌 MOSQUE" data-ar="🕌 مساجد" onclick="togglePOI('mosques',this)">🕌 MOSQUE</button>
+        <button class="chip" id="poi-churches" data-en="⛪ CHURCH" data-ar="⛪ كنائس" onclick="togglePOI('churches',this)">⛪ CHURCH</button>
+        <button class="chip" id="poi-atms" data-en="🏧 ATM" data-ar="🏧 صراف" onclick="togglePOI('atms',this)">🏧 ATM</button>
+        <button class="chip" id="poi-fuel" data-en="⛽ FUEL" data-ar="⛽ وقود" onclick="togglePOI('fuel',this)">⛽ FUEL</button>
+        <button class="chip" id="poi-danger" data-en="⚠️ DANGER" data-ar="⚠️ خطر" onclick="togglePOI('danger',this)">⚠️ DANGER</button>
+      </div>
+    </div>
+    <div class="view-tabs">
+      <div class="vt active" id="vt-map" data-en="🗺 MAP" data-ar="🗺 الخريطة" onclick="switchView('map')">🗺 MAP</div>
+      <div class="vt" id="vt-list" onclick="switchView('list')">☰ LIST <span id="countLbl" style="color:var(--green)"></span></div>
+    </div>
+    <div class="map-wrap" id="mapWrap">
+      <div id="map"></div>
+      <!-- Locate button: icon only, fixed, never changes -->
+      <button id="locateBtn" onclick="goToMyLocation()" style="position:fixed;bottom:80px;left:14px;z-index:2000;width:44px;height:44px;background:#161B22;border:2px solid rgba(255,255,255,0.25);border-radius:12px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:22px;box-shadow:0 3px 14px rgba(0,0,0,0.8);flex-shrink:0">🎯</button>
+
+      <!-- LEGEND -->
+      <div class="map-legend" id="mapLegend">
+        <div class="legend-header" onclick="toggleLegend()">
+          <div class="legend-title" id="legendTitle">MAP LEGEND</div>
+          <div class="legend-toggle" id="legendToggle">▲</div>
+        </div>
+        <div class="legend-body" id="legendBody">
+          <div class="legend-item"><div class="legend-dot" style="background:#58A6FF;box-shadow:0 0 6px #58A6FF88"></div><span data-en="Your Location" data-ar="موقعك">Your Location</span></div>
+          <div class="legend-divider"></div>
+          <div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px" data-en="AID POINTS" data-ar="نقاط المساعدة">AID POINTS</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E63946;box-shadow:0 0 5px #E6394688"></div><span data-en="Medical" data-ar="طبي">Medical</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#00a854;box-shadow:0 0 5px #00a85488"></div><span data-en="Food" data-ar="طعام">Food</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#185FA5;box-shadow:0 0 5px #185FA588"></div><span data-en="Water" data-ar="مياه">Water</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#BA7517;box-shadow:0 0 5px #BA751788"></div><span data-en="Shelter" data-ar="مأوى">Shelter</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#1a8a4a;box-shadow:0 0 5px #1a8a4a88"></div><span data-en="Safe Zone" data-ar="منطقة آمنة">Safe Zone</span></div>
+          <div class="legend-item"><div class="legend-dot" style="background:#E63946;border:2px dashed #E63946;background:transparent"></div><span data-en="⚠ Airstrike" data-ar="⚠ غارة">⚠ Airstrike</span></div>
+        <div id="poiLegend"></div>
+        </div>
+      </div>
+      <div class="map-loading" id="mapLoading">Loading...</div>
+
+    </div>
+    <div class="list-wrap" id="listWrap" style="display:none">
+      <div style="padding-top:8px" id="cardList"><div class="loading">LOADING...</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ALERTS SCREEN -->
+<div id="screen-alerts" class="screen">
+  <div class="scr-header">
+    <div class="scr-title">⚡ LIVE NEWS & ALERTS</div>
+    <div class="scr-sub" id="alertsUpdated">Fetching from Lebanese news sources...</div>
+  </div>
+  <div class="alert-tabs">
+    <div class="at active" id="at-all" onclick="setAlertTab('all',this)">ALL</div>
+    <div class="at" id="at-news" onclick="setAlertTab('news',this)">📰 NEWS</div>
+    <div class="at" id="at-field" onclick="setAlertTab('field',this)">📡 FIELD</div>
+    <div class="at" id="at-critical" onclick="setAlertTab('critical',this)">🔴 CRITICAL</div>
+  </div>
+  <div class="scr-body" style="padding-top:8px" id="alertsList"></div>
+</div>
+
+<!-- CONTACTS SCREEN -->
+<div id="screen-contacts" class="screen">
+  <div class="scr-header"><div class="scr-title">📞 EMERGENCY CONTACTS</div><div class="scr-sub">One-tap call — works offline</div></div>
+  <div class="scr-body">
+    <div class="divider-lbl">🚨 EMERGENCY — DIAL NOW</div><div id="emergList"></div>
+    <div class="divider-lbl">🌍 INTERNATIONAL AID ORGS</div><div id="intlList"></div>
+    <div class="divider-lbl">🏥 HOSPITALS — ALL LEBANON</div><div id="hospList"></div>
+  </div>
+</div>
+
+<!-- HELP SCREEN -->
+<div id="screen-help" class="screen">
+  <div class="scr-header"><div class="scr-title">🤝 HELP CENTER</div><div class="scr-sub">Add aid · Offer home/transport · Report alert</div></div>
+  <div class="help-tabs">
+    <div class="ht active" onclick="setHelpTab('add',this)">📍 ADD AID</div>
+    <div class="ht" onclick="setHelpTab('offer',this)">🏠 OFFER HELP</div>
+    <div class="ht" onclick="setHelpTab('alert',this)">⚡ REPORT</div>
+    <div class="ht" onclick="setHelpTab('volunteers',this)">👥 HELPERS</div>
+  </div>
+
+  <!-- ADD AID -->
+  <div id="helpTab-add" class="scr-body">
+    <div class="form-wrap">
+      <div id="addOk" class="success" style="display:none">✅ Submitted! Pending verification. شكراً!</div>
+      <div class="f2">
+        <div><label class="fl">النوع / TYPE *</label><select class="fs" id="a_type"><option value="shelter">🏠 Shelter/Home</option><option value="food">🍱 Food</option><option value="medical">🩺 Medical</option><option value="water">💧 Water</option><option value="safezone">🛡️ Safe Zone</option></select></div>
+        <div><label class="fl">الحالة / STATUS</label><select class="fs" id="a_status"><option value="open">✅ Open</option><option value="limited">⚠ Limited</option><option value="closed">✕ Closed</option></select></div>
+      </div>
+      <label class="fl">اسم الموقع / LOCATION NAME *</label><input class="fi" id="a_name" placeholder="e.g. My home available for families">
+      <label class="fl">اسم الموقع بالعربية</label><input class="fi" id="a_name_ar" placeholder="مثال: منزلي متاح للعائلات" dir="rtl">
+      <label class="fl">العنوان الكامل / FULL ADDRESS *</label><input class="fi" id="a_loc" placeholder="Street, area, city — be very specific">
+      <div class="f2">
+        <div><label class="fl">أوقات العمل / HOURS</label><input class="fi" id="a_hours" placeholder="e.g. 8am–10pm"></div>
+        <div><label class="fl">الطاقة / CAPACITY</label><input class="fi" id="a_cap" placeholder="e.g. 3 families"></div>
+      </div>
+      <label class="fl">ما تقدمه / WHAT YOU OFFER</label><input class="fi" id="a_items" placeholder="e.g. Room, food, WiFi, bathroom">
+      <label class="fl">رقم الاتصال / CONTACT PHONE *</label><input class="fi" id="a_phone" placeholder="+961 ...">
+      <label class="fl">اسمك / منظمتك / YOUR NAME</label><input class="fi" id="a_by" placeholder="Name or organization">
+      <label class="fl">ملاحظات / NOTES</label><textarea class="ft" id="a_note" placeholder="Important info for people arriving..."></textarea>
+      <button class="submit-btn" id="addBtn" onclick="submitAid()">📍 إرسال الموقع / SUBMIT LOCATION</button>
+      <div class="form-note">Reviewed by volunteers before going live · شكراً — your help saves lives</div>
+    </div>
+  </div>
+
+  <!-- OFFER HELP -->
+  <div id="helpTab-offer" class="scr-body" style="display:none">
+    <div class="form-wrap">
+      <div id="offerOk" class="success" style="display:none">✅ Help offer is live! شكراً!</div>
+      <label class="fl">اسمك / YOUR NAME *</label><input class="fi" id="v_name" placeholder="Your name">
+      <div class="f2">
+        <div><label class="fl">الهاتف / PHONE *</label><input class="fi" id="v_phone" placeholder="+961 ..."></div>
+        <div><label class="fl">النوع / TYPE *</label><select class="fs" id="v_type"><option value="shelter">🏠 Shelter</option><option value="transport">🚗 Transport</option><option value="food">🍱 Food</option><option value="medical">🩺 Medical</option><option value="supplies">📦 Supplies</option><option value="other">🤝 Other</option></select></div>
+      </div>
+      <label class="fl">منطقتك / المدينة / AREA *</label><input class="fi" id="v_loc" placeholder="Beirut, Tripoli, Sidon...">
+      <label class="fl">صف مساعدتك / DESCRIBE</label><textarea class="ft" id="v_desc" placeholder="e.g. I have a spare room in Beirut for a displaced family. Includes meals and WiFi."></textarea>
+      <label class="fl">متاح حتى / AVAILABLE UNTIL</label><input class="fi" id="v_until" placeholder="e.g. End of month, indefinitely">
+      <button class="submit-btn" id="offerBtn" onclick="submitOffer()">🤝 نشر عرض المساعدة / POST HELP OFFER</button>
+      <div class="form-note">Goes live immediately · Families contact you directly</div>
+    </div>
+  </div>
+
+  <!-- REPORT ALERT -->
+  <div id="helpTab-alert" class="scr-body" style="display:none">
+    <div class="form-wrap">
+      <div id="alertOk" class="success" style="display:none">✅ Alert live for all Lebanon! شكراً!</div>
+      <div class="f2">
+        <div><label class="fl">الخطورة / SEVERITY *</label><select class="fs" id="al_lvl"><option value="critical">🔴 CRITICAL</option><option value="warning">🟡 WARNING</option><option value="info">🔵 INFO</option></select></div>
+        <div><label class="fl">المنطقة / ZONE *</label><select class="fs" id="al_zone"><option>Beirut</option><option>South Lebanon</option><option>North Lebanon</option><option>Bekaa Valley</option><option>Mount Lebanon</option><option>Nabatieh</option><option>Tripoli</option><option>Sidon</option><option>Tyre</option><option>Zahle</option><option>Baalbek</option><option>Chouf</option><option>Akkar</option><option>Hermel</option><option>Byblos</option><option>Other</option></select></div>
+      </div>
+      <label class="fl">رسالة التنبيه (إنجليزي) *</label><textarea class="ft" id="al_txt" placeholder="e.g. Road blocked on Beirut–Damascus highway near Chtaura. Use alternative via Rayak."></textarea>
+      <label class="fl">رسالة التنبيه (بالعربية)</label><textarea class="ft" id="al_ar" placeholder="مثال: الطريق مقطوع على أوتوستراد بيروت–دمشق." dir="rtl"></textarea>
+      <label class="fl">اسمك / المصدر / SOURCE</label><input class="fi" id="al_src" placeholder="e.g. Lebanese Red Cross, volunteer...">
+      <button class="submit-btn" id="alertBtn" onclick="submitAlertReport()">⚡ إرسال التنبيه / SEND ALERT NOW</button>
+      <div class="form-note">Goes live immediately to ALL users in Lebanon · Only report verified info</div>
+    </div>
+  </div>
+
+  <!-- VOLUNTEERS LIST -->
+  <div id="helpTab-volunteers" class="scr-body" style="display:none">
+    <div id="volList"><div class="loading" style="padding-top:20px">LOADING...</div></div>
+  </div>
+</div>
+
+<!-- SETTINGS SCREEN -->
+<div id="screen-settings" class="screen">
+  <div class="scr-header"><div class="scr-title">⚙ SETTINGS</div><div class="scr-sub">App preferences & info</div></div>
+  <div class="scr-body">
+    <div class="divider-lbl">NOTIFICATIONS</div>
+    <div class="setting-item"><div><div class="s-label">Push Alerts</div><div class="s-desc">Critical updates & new aid points</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+    <div class="setting-item"><div><div class="s-label">SOS Auto-Share</div><div class="s-desc">Share GPS with Red Cross on SOS</div></div><div class="toggle on" onclick="this.classList.toggle('on')"><div class="toggle-thumb"></div></div></div>
+    <div class="divider-lbl">DISPLAY</div>
+    <div class="setting-item"><div><div class="s-label">Language</div><div class="s-desc" id="langDesc">English</div></div><button class="lang-btn" onclick="toggleLang()">Switch</button></div>
+    <div class="divider-lbl">NEWS SOURCES</div>
+    <div class="setting-item" style="flex-direction:column;align-items:flex-start;gap:3px;">
+      <div class="s-label">Active Lebanese News Sources</div>
+      <div class="s-desc" style="margin-top:3px;line-height:1.8">📺 Naharnet · L Orient Today · Al Mayadeen · NNA Lebanon · Lebanon24 · Al Jadeed · Updated every 5 minutes automatically · English + Arabic · 3 fetch strategies for reliability</div>
+    </div>
+    <div class="divider-lbl">🛡️ SAFE ZONES — ALL LEBANON</div>
+    <div class="sz-item"><div class="sz-name">🛡️ Rafic Hariri Stadium — Beirut</div><div class="sz-addr">📍 Beirut · Government emergency shelter</div><div class="sz-tags"><span class="sz-tag">Beirut</span><span class="sz-tag">Shelter</span><span class="sz-tag">Medical</span></div></div>
+    <div class="sz-item"><div class="sz-name">🛡️ UN Safe Zone — Sidon Sea Castle</div><div class="sz-addr">📍 Sidon · UNIFIL protected</div><div class="sz-tags"><span class="sz-tag">UNIFIL</span><span class="sz-tag">WiFi</span><span class="sz-tag">24/7</span></div></div>
+    <div class="sz-item"><div class="sz-name">🛡️ Al Mina Port Zone — Tripoli</div><div class="sz-addr">📍 Tripoli · UNHCR registered</div><div class="sz-tags"><span class="sz-tag">North</span><span class="sz-tag">UNHCR</span></div></div>
+    <div class="sz-item"><div class="sz-name">🛡️ Bekaa Red Cross Center — Zahle</div><div class="sz-addr">📍 Zahle · Bekaa Valley</div><div class="sz-tags"><span class="sz-tag">Bekaa</span><span class="sz-tag">Red Cross</span></div></div>
+    <div class="sz-item"><div class="sz-name">🛡️ UNIFIL Base — Al Hinniyeh</div><div class="sz-addr">📍 South Lebanon · UN Protected</div><div class="sz-tags"><span class="sz-tag">UNIFIL</span><span class="sz-tag">24/7</span></div></div>
+      
+    </div>
+    <div class="divider-lbl">ABOUT</div>
+    <div class="setting-item" style="flex-direction:column;align-items:flex-start;gap:4px;">
+      <div class="s-label">NAJDA نجدة v5.0</div>
+      <div class="s-desc">Built for all of Lebanon. Real-time community data + live news. Works offline. Free forever.</div>
+      <div class="s-desc" style="color:var(--red);margin-top:2px">Last sync: <span id="lastSync">--</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav">
+  <div class="nav-item active" id="nav-map" onclick="showTab('map')"><div class="nav-icon">🗺️</div><div class="nav-lbl" data-en="MAP" data-ar="الخريطة">MAP</div></div>
+  <div class="nav-item" id="nav-alerts" onclick="showTab('alerts')"><div class="nav-icon">⚡</div><div class="nav-lbl" data-en="NEWS" data-ar="الأخبار">NEWS</div><div class="nav-badge" id="newsBadge" style="display:none">0</div></div>
+  <div class="nav-item" id="nav-contacts" onclick="showTab('contacts')"><div class="nav-icon">📞</div><div class="nav-lbl" data-en="CONTACTS" data-ar="اتصالات">CONTACTS</div></div>
+  <div class="nav-item" id="nav-help" onclick="showTab('help')"><div class="nav-icon">🤝</div><div class="nav-lbl" data-en="HELP" data-ar="مساعدة">HELP</div></div>
+  <div class="nav-item" id="nav-settings" onclick="showTab('settings')"><div class="nav-icon">⚙️</div><div class="nav-lbl" data-en="SETTINGS" data-ar="الإعدادات">SETTINGS</div></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// CONFIG
+// ═══════════════════════════════════════
+const SUPABASE_URL = 'https://lrrlkfegwrjuvmthaxed.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_YUIwm-sdQL0ggHhIYdL66Q_tiEImEDU';
+// Note: if connection fails, go to Supabase → Settings → API → copy the anon/public key starting with eyJ
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ALL Lebanese news RSS feeds via rss2json (free proxy)
+// GNews API — free, no key needed for basic use, purpose-built for news
+// Falls back to rss2json with Google News if GNews fails
+const RSS2JSON_KEY = '42ldu8yd4mzzfrgcpuuehsr7vx5dbpy9yt8vdqc';
+
+// GNews search queries
+const GNEWS_QUERIES = [
+  { q:'Lebanon',              lang:'en', label:'Lebanon EN' },
+  { q:'لبنان',                lang:'ar', label:'Lebanon AR' },
+  { q:'Lebanon war attack',   lang:'en', label:'Crisis'     },
+  { q:'Lebanon aid displaced',lang:'en', label:'Aid'        },
+  { q:'south Lebanon',        lang:'en', label:'South LB'   },
+  { q:'Beirut',               lang:'en', label:'Beirut'     },
+];
+
+// Verified working RSS feeds via rss2json (tested sources)
+const RSS_FEEDS = [
+  { name:'Naharnet',       short:'Naharnet', url:'https://www.naharnet.com/stories/en/rss'         },
+  { name:'L Orient Today',short:'LOJ',      url:'https://today.lorientlejour.com/feed'            },
+  { name:'Al Mayadeen',    short:'Mayadeen', url:'https://english.almayadeen.net/rss.xml'          },
+  { name:'NNA Lebanon',    short:'NNA',      url:'https://www.nna-leb.gov.lb/en/rss'              },
+  { name:'Lebanon24',      short:'LB24',     url:'https://www.lebanon24.com/rss.xml'              },
+];
+
+const KEYWORDS = ['Lebanon','لبنان','Beirut','Tripoli','Sidon','Tyre','Bekaa','Nabatieh','south','war','ceasefire','attack','strike','explosion','bomb','rocket','missile','kill','casualt','refugee','displaced','humanitarian','aid','food','water','shelter','hospital','road','closure','danger','uxo','urgent','警報','نجدة','مساعدة','طريق','انفجار','غارة','اشتباك','قصف','جرحى','شهداء','إخلاء','نازحون'];
+
+// POI config
+const POI_CFG = {
+  hospitals:   { lbl:'Hospitals',  icon:'🏥', color:'#E63946', query:'"amenity"~"hospital|clinic"' },
+  pharmacies:  { lbl:'Pharmacies', icon:'💊', color:'#00FF88', query:'"amenity"="pharmacy"' },
+  restaurants: { lbl:'Food',       icon:'🍽️', color:'#FFB703', query:'"amenity"~"restaurant|fast_food|cafe"' },
+  mosques:     { lbl:'Mosques',    icon:'🕌', color:'#1D9E75', query:'"amenity"="place_of_worship"]["religion"="muslim"' },
+  churches:    { lbl:'Churches',   icon:'⛪', color:'#9B8FE0', query:'"amenity"="place_of_worship"]["religion"="christian"' },
+  atms:        { lbl:'ATM/Bank',   icon:'🏧', color:'#58A6FF', query:'"amenity"~"atm|bank"' },
+  fuel:        { lbl:'Fuel',       icon:'⛽', color:'#FF8C00', query:'"amenity"="fuel"' },
+  danger:      { lbl:'Danger',     icon:'⚠️', color:'#E63946', query:null }, // special — from alerts
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let lang = 'en';
+let aidFilter = 'all';
+let alertTab = 'all';
+let selectedId = null;
+let saved = JSON.parse(localStorage.getItem('najda_saved')||'[]');
+let allAids = [];
+let allAlerts = [];
+let newsItems = [];
+let combined = [];
+let tickerIdx = 0;
+let isOnline = true;
+let currentView = 'map';
+let leafMap, aidLayer, userMarker;
+const poiLayers = {}, poiActive = {};
+let legendVisible = true;
+
+const t = (en, ar) => lang==='ar' ? ar : en;
+
+// ═══════════════════════════════════════
+// ONLINE / OFFLINE MODE
+// ═══════════════════════════════════════
+function setMode(mode) {
+  isOnline = mode === 'online';
+  document.getElementById('btn-online').className = 'ot-btn' + (isOnline ? ' active' : '');
+  document.getElementById('btn-offline').className = 'ot-btn' + (!isOnline ? ' offline-active' : '');
+  document.getElementById('statusDot').style.background = isOnline ? 'var(--green)' : 'var(--amber)';
+  if (isOnline) {
+    loadAll();
+  } else {
+    // Offline: use cached data from localStorage
+    const cached = localStorage.getItem('najda_aids');
+    if (cached) { allAids = JSON.parse(cached); renderCards(getFiltered()); renderAidMarkers(getFiltered()); }
+    const cachedAlerts = localStorage.getItem('najda_alerts');
+    if (cachedAlerts) { combined = JSON.parse(cachedAlerts); renderAlertsList(); rotateTicker(); }
+  }
+}
+
+// ═══════════════════════════════════════
+// MAP INIT
+// ═══════════════════════════════════════
+function initMap() {
+
+  leafMap = L.map('map', { zoomControl:true, tap:true, tapTolerance:15, touchZoom:true, bounceAtZoomLimits:false }).setView([33.8547,35.8623], 8);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution:'© OpenStreetMap', maxZoom:19
+  }).addTo(leafMap);
+  aidLayer = L.layerGroup().addTo(leafMap);
+  userMarker = L.circleMarker([33.8547,35.8623], {
+    radius:8, fillColor:'#58A6FF', color:'#fff', weight:2, fillOpacity:1
+  }).bindPopup('<b style="color:#58A6FF">📍 Your Location</b>').addTo(leafMap);
+  setTimeout(() => leafMap.invalidateSize(), 300);
+  leafMap.on('moveend', onMapMove);
+}
+
+function goToMyLocation() {
+  if (!leafMap) return;
+  leafMap.flyTo([userLat, userLng], 15, {animate:true, duration:1});
+  userMarker.openPopup();
+}
+
+function onMapMove() {
+  Object.keys(poiActive).forEach(t => { if(poiActive[t]) loadPOI(t); });
+}
+
+// ═══════════════════════════════════════
+// GPS
+// ═══════════════════════════════════════
+let userLat=33.8547, userLng=35.8623;
+function initGPS() {
+  if (!navigator.geolocation) {
+    console.warn('Geolocation not supported');
+    return;
+  }
+
+  const gpsOpts = {enableHighAccuracy:true, timeout:15000, maximumAge:0};
+
+  function onPosition(pos) {
+    userLat = pos.coords.latitude;
+    userLng = pos.coords.longitude;
+    userMarker.setLatLng([userLat, userLng]);
+    if (!leafMap._moved) leafMap.setView([userLat, userLng], 13);
+    console.log('GPS:', userLat, userLng);
+  }
+
+  function onError(err) {
+    console.warn('GPS error:', err.code, err.message);
+    if (err.code === 1) {
+      // Permission denied - show banner asking user to enable
+      var banner = document.getElementById('gpsBanner');
+      if (banner) banner.style.display = 'flex';
+    }
+  }
+
+  // Explicitly request permission and get position
+  navigator.permissions && navigator.permissions.query({name:'geolocation'}).then(function(result) {
+    console.log('GPS permission:', result.state);
+    if (result.state === 'denied') {
+      var banner = document.getElementById('gpsBanner');
+      if (banner) banner.style.display = 'flex';
+      return;
+    }
+    // Request position (this triggers the permission popup on first visit)
+    navigator.geolocation.getCurrentPosition(onPosition, onError, gpsOpts);
+    navigator.geolocation.watchPosition(onPosition, onError, {enableHighAccuracy:true, timeout:10000, maximumAge:5000});
+  }).catch(function() {
+    // Permissions API not supported, request directly
+    navigator.geolocation.getCurrentPosition(onPosition, onError, gpsOpts);
+    navigator.geolocation.watchPosition(onPosition, onError, {enableHighAccuracy:true, timeout:10000, maximumAge:5000});
+  });
+}
+
+// ═══════════════════════════════════════
+// LOAD AIDS FROM SUPABASE
+// ═══════════════════════════════════════
+async function testSupabaseConnection() {
+  try {
+    const {data,error} = await db.from('aid_locations').select('count').limit(1);
+    if (error) {
+      console.warn('Supabase connection issue:', error.message);
+      document.getElementById('statusDot').style.background = 'var(--amber)';
+    } else {
+      document.getElementById('statusDot').style.background = 'var(--green)';
+    }
+  } catch(e) {
+    console.warn('Supabase offline:', e.message);
+    document.getElementById('statusDot').style.background = 'var(--red)';
+  }
+}
+
+async function loadAids() {
+  try {
+    const {data,error} = await db.from('aid_locations').select('*').order('created_at',{ascending:false});
+    if (error) throw error;
+    allAids = data||[];
+    localStorage.setItem('najda_aids', JSON.stringify(allAids));
+  } catch(e) {
+    const cached = localStorage.getItem('najda_aids');
+    allAids = cached ? JSON.parse(cached) : [];
+  }
+  const f = getFiltered();
+  renderCards(f);
+  renderAidMarkers(f);
+  document.getElementById('countLbl').textContent = `(${allAids.length})`;
+  document.getElementById('lastSync').textContent = new Date().toLocaleString('en-GB',{timeZone:'Asia/Beirut',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+}
+
+// ═══════════════════════════════════════
+// AID MARKERS
+// ═══════════════════════════════════════
+const AID_COLORS = {food:'#00a854',medical:'#E63946',water:'#185FA5',shelter:'#BA7517',safezone:'#1a8a4a'};
+const AID_ICONS  = {food:'🍱',medical:'🩺',water:'💧',shelter:'🏠',safezone:'🛡️'};
+
+function makeAidIcon(type) {
+  const c = AID_COLORS[type]||'#888';
+  const ic = AID_ICONS[type]||'📍';
+  return L.divIcon({
+    className:'',
+    html:`<div style="position:relative;width:32px;height:38px">
+      <div style="position:absolute;bottom:0;width:28px;height:34px;background:${c};border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 2px 8px rgba(0,0,0,0.5);border:2px solid rgba(255,255,255,0.3)"></div>
+      <span style="position:absolute;top:4px;left:2px;font-size:14px">${ic}</span>
+    </div>`,
+    iconSize:[32,38], iconAnchor:[14,38], popupAnchor:[2,-40]
+  });
+}
+
+function renderAidMarkers(list) {
+  if (!aidLayer) return;
+  aidLayer.clearLayers();
+  list.forEach(a => {
+    if (!a.lat||!a.lng) return;
+    const d = calcDist(a.lat,a.lng);
+    const sLabel = a.status==='open'?'<span style="color:var(--green)">● ACTIVE</span>':a.status==='limited'?'<span style="color:var(--amber)">⚠ LIMITED</span>':'<span style="color:var(--muted)">✕ CLOSED</span>';
+    const popup = `
+      <div class="popup-name">${AID_ICONS[a.type]||'📍'} ${lang==='ar'&&a.name_ar?a.name_ar:a.name}</div>
+      <div class="popup-addr">📍 ${lang==='ar'&&a.location_ar?a.location_ar:a.location}</div>
+      <div class="popup-addr">🧭 ${d} away</div>
+      <div class="popup-tags">
+        <span class="popup-tag" style="background:rgba(255,255,255,0.08);color:var(--muted)">${(a.type||'aid').toUpperCase()}</span>
+      </div>
+      <div style="margin-bottom:4px">${sLabel}</div>
+      ${a.hours?`<div class="popup-hours">🕐 ${a.hours}</div>`:''}
+      ${a.items?`<div class="popup-hours">📦 ${a.items.substring(0,60)}${a.items.length>60?'...':''}</div>`:''}
+      ${a.note?`<div class="popup-hours" style="color:var(--amber)">⚠ ${a.note.substring(0,80)}</div>`:''}
+      <div style="display:flex;gap:5px;margin-top:7px;flex-wrap:wrap">
+        ${a.phone?`<a href="tel:${a.phone}" class="popup-call">📞 ${a.phone}</a>`:''}
+        <a href="https://www.openstreetmap.org/directions?from=${userLat},${userLng}&to=${a.lat},${a.lng}" target="_blank" class="popup-nav">🗺 Directions</a>
+      </div>`;
+    const m = L.marker([a.lat,a.lng],{icon:makeAidIcon(a.type)});
+    m.bindPopup(popup,{maxWidth:240});
+    m.on('click',()=>{selectedId=a.id;if(currentView==='list')renderCards(getFiltered());});
+    aidLayer.addLayer(m);
+  });
+}
+
+// ═══════════════════════════════════════
+// POI SYSTEM — Overpass API
+// ═══════════════════════════════════════
+function makePOIIcon(cfg) {
+  return L.divIcon({
+    className:'',
+    html:`<div style="width:26px;height:26px;background:${cfg.color};border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid rgba(255,255,255,0.35);box-shadow:0 2px 6px rgba(0,0,0,0.4)">${cfg.icon}</div>`,
+    iconSize:[26,26], iconAnchor:[13,13], popupAnchor:[0,-15]
+  });
+}
+
+async function loadPOI(type) {
+  if (type==='danger') { loadDangerZones(); return; }
+  const cfg = POI_CFG[type];
+  if (!cfg||!leafMap) return;
+  const b = leafMap.getBounds();
+  const bbox = `${b.getSouth().toFixed(4)},${b.getWest().toFixed(4)},${b.getNorth().toFixed(4)},${b.getEast().toFixed(4)}`;
+  showMapLoading(`Loading ${cfg.lbl}...`);
+  try {
+    const q = `[out:json][timeout:25];(node[${cfg.query}](${bbox});way[${cfg.query}](${bbox}););out center;`;
+    const res = await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q)});
+    const data = await res.json();
+    if (!poiLayers[type]) poiLayers[type]=L.layerGroup().addTo(leafMap);
+    else poiLayers[type].clearLayers();
+    const icon = makePOIIcon(cfg);
+    let count = 0;
+    data.elements.forEach(el=>{
+      const lat=el.lat||(el.center&&el.center.lat), lng=el.lon||(el.center&&el.center.lon);
+      if (!lat||!lng) return;
+      const tags=el.tags||{};
+      const name=tags.name||tags['name:en']||tags['name:ar']||cfg.lbl;
+      const nameAr=tags['name:ar']||name;
+      const phone=tags.phone||tags['contact:phone']||tags['phone:1']||'';
+      const hours=tags.opening_hours||'';
+      const addr=[tags['addr:street'],tags['addr:housenumber'],tags['addr:city']].filter(Boolean).join(', ');
+      const website=tags.website||tags['contact:website']||'';
+      const wheelchair=tags.wheelchair||'';
+      const emergency=tags.emergency||'';
+      const beds=tags.beds||'';
+      const cuisine=tags.cuisine||'';
+      const popup=`
+        <div class="popup-name">${cfg.icon} ${lang==='ar'?nameAr:name}</div>
+        ${addr?`<div class="popup-addr">📍 ${addr}</div>`:''}
+        ${hours?`<div class="popup-hours">🕐 ${hours}</div>`:''}
+        ${phone?`<div class="popup-hours">📞 ${phone}</div>`:''}
+        ${beds?`<div class="popup-hours">🛏 ${beds} beds</div>`:''}
+        ${cuisine?`<div class="popup-hours">🍽️ ${cuisine}</div>`:''}
+        ${emergency?`<div class="popup-hours" style="color:var(--red)">🚨 Emergency: ${emergency}</div>`:''}
+        ${wheelchair?`<div class="popup-hours">♿ Wheelchair: ${wheelchair}</div>`:''}
+        <div style="display:flex;gap:5px;margin-top:6px;flex-wrap:wrap">
+          ${phone?`<a href="tel:${phone}" class="popup-call">📞 Call</a>`:''}
+          ${website?`<a href="${website}" target="_blank" class="popup-nav">🌐 Website</a>`:''}
+          <a href="https://www.openstreetmap.org/directions?from=${userLat},${userLng}&to=${lat},${lng}" target="_blank" class="popup-nav">🗺 Directions</a>
+        </div>
+        <div style="margin-top:5px;font-family:var(--mono);font-size:8px;color:var(--muted)">${cfg.icon} ${lang==='ar'?cfg.lbl:cfg.lbl} · OSM</div>`;
+      const m=L.marker([lat,lng],{icon});
+      m.bindPopup(popup,{maxWidth:250});
+      poiLayers[type].addLayer(m);
+      count++;
+    });
+    showMapLoading(`✅ ${count} ${cfg.lbl} loaded`,2000);
+    updatePoiLegend();
+  } catch(e) {
+    showMapLoading(`⚠ Could not load ${cfg.lbl}`,2500);
+  }
+}
+
+function removePOI(type) {
+  if (poiLayers[type]&&leafMap) { leafMap.removeLayer(poiLayers[type]); delete poiLayers[type]; }
+  updatePoiLegend();
+}
+
+function togglePOI(type, btn) {
+  poiActive[type] = !poiActive[type];
+  btn.classList.toggle('poi-on', poiActive[type]);
+  poiActive[type] ? loadPOI(type) : removePOI(type);
+}
+
+function updatePoiLegend() {
+  const el = document.getElementById('poiLegend');
+  if (!el) return;
+  const active = Object.keys(poiActive).filter(t=>poiActive[t]);
+  if (active.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = '<div class="legend-divider"></div>' +
+    '<div style="font-family:var(--mono);font-size:8px;color:var(--muted);letter-spacing:1px;margin-bottom:4px">MAP LAYERS</div>' +
+    active.map(t=>`<div class="legend-poi-item"><div class="legend-dot" style="background:${POI_CFG[t].color};width:8px;height:8px"></div>${POI_CFG[t].icon} ${POI_CFG[t].lbl}</div>`).join('');
+}
+
+// ═══════════════════════════════════════
+// DANGER ZONES from alerts
+// ═══════════════════════════════════════
+const ZONE_COORDS = {
+  'South Lebanon':{lat:33.27,lng:35.20,r:15000},
+  'Nabatieh':{lat:33.37,lng:35.48,r:8000},
+  'Sidon':{lat:33.56,lng:35.37,r:5000},
+  'Tyre':{lat:33.27,lng:35.20,r:6000},
+  'Bekaa Valley':{lat:33.85,lng:35.90,r:20000},
+  'Baalbek':{lat:34.00,lng:36.21,r:8000},
+  'Beirut':{lat:33.89,lng:35.50,r:10000},
+  'Tripoli':{lat:34.44,lng:35.85,r:8000},
+};
+
+function loadDangerZones() {
+  if (!poiLayers['danger']) poiLayers['danger'] = L.layerGroup().addTo(leafMap);
+  else poiLayers['danger'].clearLayers();
+  const criticals = combined.filter(a=>a.level==='critical');
+  criticals.forEach(a=>{
+    const zc = ZONE_COORDS[a.zone];
+    if (!zc) return;
+    const circle = L.circle([zc.lat,zc.lng],{
+      radius:zc.r,
+      color:'#E63946',strokeWidth:2,
+      dashArray:'8,4',
+      fillColor:'#E63946',
+      fillOpacity:0.08,
+      weight:2,
+    });
+    circle.bindPopup(`
+      <div class="popup-name" style="color:var(--red)">⚠️ DANGER ZONE — ${a.zone}</div>
+      <div class="popup-addr">${a.text}</div>
+      <div class="popup-hours" style="color:var(--muted)">Source: ${a.source||'Field report'}</div>
+      <div class="popup-hours">${new Date(a.created_at).toLocaleString('en-GB')}</div>
+    `,{maxWidth:240});
+    poiLayers['danger'].addLayer(circle);
+  });
+  updatePoiLegend();
+}
+
+function toggleLegend() {
+  legendVisible = !legendVisible;
+  const body = document.getElementById('legendBody');
+  const toggle = document.getElementById('legendToggle');
+  if (body) body.style.display = legendVisible ? 'block' : 'none';
+  if (toggle) toggle.textContent = legendVisible ? '▲' : '▼';
+}
+
+function showMapLoading(msg, hideAfter=0) {
+  const el=document.getElementById('mapLoading');
+  el.textContent=msg; el.style.display='block';
+  if (hideAfter) setTimeout(()=>el.style.display='none', hideAfter);
+}
+
+// ═══════════════════════════════════════
+// NEWS — NewsData.io
+// ═══════════════════════════════════════
+const NEWSDATA_KEY = 'pub_2f58e0b8ce2c415cb42f2f4b8a17409a';
+// Lebanon-specific RSS feeds only
+const NEWS_FEEDS = [
+  // NNA Lebanon — Official Lebanese News Agency (Arabic + English)
+  {url:'https://www.nna-leb.gov.lb/ar/rss',           name:'وكالة الأنباء اللبنانية', short:'NNA', lb:true},
+  {url:'https://www.nna-leb.gov.lb/en/rss',           name:'NNA Lebanon',              short:'NNA', lb:true},
+  // Al Jazeera — Lebanon section specifically
+  {url:'https://www.aljazeera.net/xml/rss/lebanon.xml',name:'الجزيرة - لبنان',         short:'AJA', lb:true},
+  // Naharnet — Lebanon English news
+  {url:'https://www.naharnet.com/stories/en/rss',      name:'Naharnet',                 short:'Naharnet', lb:true},
+  // L Orient Today — Lebanon English
+  {url:'https://today.lorientlejour.com/feed',         name:"L'Orient Today",           short:'LOJ', lb:true},
+];
+
+// Lebanon keywords to filter non-Lebanon news
+const LB_FILTER = [
+  'لبنان','بيروت','جنوب','النبطية','صيدا','صور','طرابلس','البقاع','الضاحية',
+  'lebanon','beirut','south','nabatieh','sidon','tyre','tripoli','bekaa',
+  'hezbollah','حزب الله','اسرائيل','israel','ceasefire','هدنة'
+];
+
+
+function makeNewsItem(title, desc, link, pubDate, sourceName) {
+  const clean = (title||'').replace(/\s+/g,' ').trim();
+  const cleanDesc = (desc||'').replace(/<[^>]+>/g,'').replace(/&[a-z#0-9]+;/gi,' ').replace(/\s+/g,' ').trim();
+  // Force UTC parsing — NewsData.io sends "YYYY-MM-DD HH:MM:SS" with no timezone
+  let dateObj = new Date();
+  if (pubDate) {
+    const pd = String(pubDate).trim()
+      .replace(' ', 'T')   // "2025-03-15 13:42:00" → "2025-03-15T13:42:00"
+      .replace(/([+-]\d{2}:\d{2}|Z)$/, '') + 'Z'; // strip any tz then add Z
+    const parsed = new Date(pd);
+    if (!isNaN(parsed.getTime())) dateObj = parsed;
+  }
+  return {
+    id: 'n_'+Math.random().toString(36).substring(2,10),
+    level: classifyLevel(clean+' '+cleanDesc),
+    text: clean, text_ar: null,
+    zone: extractZone(clean+' '+cleanDesc),
+    source: sourceName||'Lebanon News',
+    source_full: sourceName||'Lebanon News',
+    link: link||'',
+    desc: cleanDesc.includes('ONLY AVAILABLE') ? '' : cleanDesc.substring(0,220),
+    created_at: dateObj.toISOString(),
+    active: true, type: 'news',
+  };
+}
+
+async function fetchNewsDataIO(query, language) {
+  try {
+    // NewsData.io — no CORS issues, works from browser, free 200 req/day
+    const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_KEY}&country=lb&language=${language}&q=${encodeURIComponent(query)}&size=10`;
+    const res = await fetch(url, {signal: AbortSignal.timeout(10000)});
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.status !== 'success' || !data.results) return [];
+    return data.results.map(a => makeNewsItem(
+      a.title, a.description||a.content,
+      a.link, a.pubDate,
+      a.source_id||a.source_name||'Lebanon News'
+    )).filter(i => i.text.length > 5);
+  } catch(e) { return []; }
+}
+
+async function fetchNewsLatest() {
+  try {
+    // Get latest Lebanon news — all sources
+    const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_KEY}&country=lb&size=10`;
+    const res = await fetch(url, {signal: AbortSignal.timeout(10000)});
+    if (!res.ok) return [];
+    const data = await res.json();
+    if (data.status !== 'success' || !data.results) return [];
+    return data.results.map(a => makeNewsItem(
+      a.title, a.description||a.content,
+      a.link, a.pubDate,
+      a.source_id||a.source_name||'Lebanon News'
+    )).filter(i => i.text.length > 5);
+  } catch(e) { return []; }
+}
+
+async function fetchAllNews() {
+  document.getElementById('alertsUpdated').textContent = 'Fetching live news...';
+  let all = [];
+
+  // PRIMARY: Read from Supabase news_cache (kept fresh by the news bot)
+  try {
+    const {data, error} = await db.from('news_cache')
+      .select('*')
+      .order('published_at', {ascending: false})
+      .limit(80);
+    if (!error && data && data.length > 0) {
+      all = data.map(function(n) {
+        return makeNewsItem(n.title, n.description||'', n.link, n.published_at, n.source);
+      });
+      console.log('News from Supabase bot cache:', all.length);
+    }
+  } catch(e) {}
+
+  // FALLBACK: RSS feeds directly if Supabase is empty
+  if (all.length < 3) {
+    const rssResults = await Promise.allSettled(NEWS_FEEDS.map(async function(feed) {
+      try {
+        const url = 'https://api.rss2json.com/v1/api.json?rss_url=' + encodeURIComponent(feed.url) + '&count=15&api_key=' + RSS2JSON_KEY;
+        const res = await fetch(url, {signal: AbortSignal.timeout(10000)});
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (data.status !== 'ok' || !data.items || !data.items.length) return [];
+        return data.items.map(function(item) {
+          return makeNewsItem(item.title, item.description||'', item.link, item.pubDate, feed.name);
+        }).filter(function(i) {
+          if (!i.text || i.text.length < 5) return false;
+          var txt = (i.text + ' ' + (i.desc||'')).toLowerCase();
+          return LB_FILTER.some(function(kw){ return txt.indexOf(kw.toLowerCase()) > -1; });
+        });
+      } catch(e) { return []; }
+    }));
+    rssResults.forEach(function(r){ if (r.status==='fulfilled') all.push.apply(all, r.value); });
+    console.log('News from RSS fallback:', all.length);
+  }
+
+  const seen = new Set();
+  newsItems = all.filter(function(item) {
+    if (!item.text || item.text.length < 8) return false;
+    const k = item.text.substring(0,50).toLowerCase().replace(/[^a-z0-9؀-ۿ]/g,'');
+    if (seen.has(k)) return false;
+    seen.add(k); return true;
+  }).sort(function(a,b){ return new Date(b.created_at)-new Date(a.created_at); }).slice(0,100);
+
+  console.log('Total news:', newsItems.length);
+  detectDangerZonesFromNews(newsItems);
+}
+
+function classifyLevel(txt) {
+  const t=txt.toLowerCase();
+  if(/attack|strike|explosion|bomb|rocket|kill|dead|casualt|danger|uxo|urgent|warning|غارة|انفجار|قتيل|شهيد|جريح|قصف/.test(t)) return 'critical';
+  if(/closure|block|shortage|limited|alert|caution|تحذير|مقطوع|شحة|تعليق/.test(t)) return 'warning';
+  return 'info';
+}
+
+function extractZone(txt) {
+  const zones=['Beirut','Tripoli','Sidon','Tyre','Nabatieh','Bekaa','Zahle','Baalbek','Chouf','South Lebanon','North Lebanon','Mount Lebanon','Hermel','Akkar','Byblos','Jounieh','Marjeyoun','Bint Jbeil','Khiam','Aita','Qana','Ghaziyeh'];
+  for(const z of zones){if(txt.includes(z)) return z;}
+  return 'Lebanon';
+}
+
+// ═══════════════════════════════════════
+// LOAD FIELD ALERTS
+// ═══════════════════════════════════════
+async function loadFieldAlerts() {
+  try {
+    const {data,error}=await db.from('alerts').select('*').eq('active',true).order('created_at',{ascending:false});
+    if(error) throw error;
+    allAlerts=(data||[]).map(a=>({...a,type:'field'}));
+  } catch(e){ allAlerts=[]; }
+}
+
+async function refreshAll() {
+  await Promise.all([fetchAllNews(), loadFieldAlerts()]);
+  combined=[...allAlerts,...newsItems].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  localStorage.setItem('najda_alerts',JSON.stringify(combined));
+  renderAlertsList();
+  rotateTicker();
+  if(poiActive['danger']) loadDangerZones();
+  const b=document.getElementById('newsBadge');
+  const cnt=combined.length;
+  if(cnt>0){b.textContent=cnt>99?'99+':cnt;b.style.display='flex';}else{b.style.display='none';}
+  const now=new Date().toLocaleString('en-GB',{timeZone:'Asia/Beirut',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+  document.getElementById('alertsUpdated').textContent=`${now} · ${newsItems.length} news · ${allAlerts.length} field · ${NEWS_FEEDS.length} sources`;
+}
+
+// ═══════════════════════════════════════
+// RENDER ALERTS
+// ═══════════════════════════════════════
+function setAlertTab(tab,btn) {
+  alertTab=tab;
+  document.querySelectorAll('.at').forEach(b=>{b.classList.remove('active');});
+  btn.classList.add('active');
+  renderAlertsList();
+}
+
+function renderAlertsList() {
+  const el=document.getElementById('alertsList');
+  let list=combined;
+  if(alertTab==='news') list=combined.filter(a=>a.type==='news');
+  if(alertTab==='field') list=combined.filter(a=>a.type==='field');
+  if(alertTab==='critical') list=combined.filter(a=>a.level==='critical');
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">⚡</div>${
+      alertTab==='field'
+        ? t('No field reports yet.<br>Use Help → Report Alert.','لا تقارير ميدانية بعد.')
+        : t('No alerts right now.','لا تنبيهات الآن.')
+    }</div>`; return;
+  }
+  el.innerHTML=list.map(a=>{
+    const lvl=a.level||'info';
+    const txt=lang==='ar'&&a.text_ar?a.text_ar:a.text;
+    const _nd=new Date(a.created_at);
+    const _dm=Math.floor((Date.now()-_nd.getTime())/60000);
+    const time=isNaN(_nd.getTime())?'':_dm<1?'Just now':_dm<60?_dm+'m ago':_dm<1440?Math.floor(_dm/60)+'h ago':_dm<10080?Math.floor(_dm/1440)+'d ago':_nd.toLocaleString('en-GB',{timeZone:'Asia/Beirut',day:'2-digit',month:'short'});
+    const badge=a.type==='news'
+      ?`<span class="src-badge src-news">📰 ${a.source}</span>`
+      :`<span class="src-badge src-field">📡 FIELD</span>`;
+    return `<div class="alert-item ${lvl}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px">
+        <div class="al-level ${lvl}">${lvl.toUpperCase()} — ${a.zone||'Lebanon'}</div>
+        ${badge}
+      </div>
+      <div class="al-text">${txt}</div>
+      ${a.desc&&a.type==='news'?`<div class="al-desc">${a.desc.substring(0,150)}${a.desc.length>150?'...':''}</div>`:''}
+      ${a.link?`<a href="${a.link}" target="_blank" class="read-more">READ FULL ARTICLE ↗</a>`:''}
+      <div class="al-meta"><span>${a.source_full||a.source||'Field report'}</span><span>🕐 ${time}</span></div>
+    </div>`;
+  }).join('');
+}
+
+function rotateTicker() {
+  if(!combined.length){document.getElementById('tickerTxt').textContent=t('No alerts — all clear.','لا تنبيهات.');return;}
+  const a=combined[tickerIdx%combined.length];
+  const txt=lang==='ar'&&a.text_ar?a.text_ar:a.text;
+  document.getElementById('tickerTxt').textContent=txt;
+  document.getElementById('tickerSrc').textContent=a.source||'';
+  tickerIdx++;
+}
+
+// ═══════════════════════════════════════
+// SEARCH — aid + geocode
+// ═══════════════════════════════════════
+let searchTimer=null;
+async function onSearch() {
+  clearTimeout(searchTimer);
+  const q=document.getElementById('searchInput').value.trim();
+  if(!q){renderCards(getFiltered());renderAidMarkers(getFiltered());return;}
+  // Filter local aids first
+  const f=getFiltered();
+  renderCards(f);
+  renderAidMarkers(f);
+  // Also geocode to map location
+  searchTimer=setTimeout(async()=>{
+    if(q.length<3) return;
+    try {
+      const res=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q+' Lebanon')}&format=json&limit=3`,{headers:{'Accept-Language':'en','User-Agent':'NAJDA-Lebanon-App'}});
+      const data=await res.json();
+      if(data&&data[0]){
+        leafMap.flyTo([data[0].lat,data[0].lon],14,{animate:true,duration:1});
+        L.popup().setLatLng([data[0].lat,data[0].lon]).setContent(`<div class="popup-name">🔍 ${data[0].display_name.split(',')[0]}</div><div class="popup-addr">${data[0].display_name.substring(0,80)}</div>`).openOn(leafMap);
+      }
+    } catch(e){}
+  },800);
+}
+
+// ═══════════════════════════════════════
+// CARDS LIST
+// ═══════════════════════════════════════
+function getFiltered() {
+  const q=(document.getElementById('searchInput')?.value||'').toLowerCase();
+  return allAids.filter(a=>{
+    const mf=aidFilter==='all'||a.type===aidFilter;
+    const ms=!q||(a.name||'').toLowerCase().includes(q)||(a.location||'').toLowerCase().includes(q)||(a.org||'').toLowerCase().includes(q)||(a.items||'').toLowerCase().includes(q)||(a.name_ar||'').includes(q);
+    return mf&&ms;
+  });
+}
+
+function renderCards(list) {
+  const el=document.getElementById('cardList');
+  if(!el) return;
+  document.getElementById('countLbl').textContent=`(${list.length})`;
+  if(!list.length){
+    el.innerHTML=`<div class="empty"><div class="empty-icon">📍</div>${t('No aid points yet.<br>Add one via Help tab!','لا توجد نقاط بعد.')}</div>`;return;
+  }
+  const ibg={food:'rgba(0,168,84,0.15)',medical:'rgba(230,57,70,0.15)',water:'rgba(88,166,255,0.15)',shelter:'rgba(255,183,3,0.15)',safezone:'rgba(0,255,136,0.1)'};
+  el.innerHTML=list.map((a,i)=>{
+    const sel=selectedId===a.id;
+    const fav=saved.includes(a.id);
+    const d=calcDist(a.lat,a.lng);
+    return `<div class="aid-card${sel?' selected':''}" id="c-${a.id}" onclick="selectCard('${a.id}')" style="animation-delay:${i*0.03}s">
+      <div class="card-main">
+        <div class="card-icon" style="background:${ibg[a.type]||ibg.food}">${AID_ICONS[a.type]||'📍'}</div>
+        <div style="flex:1;min-width:0">
+          <div class="card-name">${lang==='ar'&&a.name_ar?a.name_ar:a.name}</div>
+          <div class="card-loc">📍 ${lang==='ar'&&a.location_ar?a.location_ar:a.location}</div>
+          <div class="card-dist">🧭 ${d} · ${a.org||a.added_by||'Volunteer'}</div>
+          <div class="card-tags">
+            <span class="tag ${a.status||'open'}">${a.status==='open'?'● ACTIVE':a.status==='limited'?'⚠ LIMITED':'✕ CLOSED'}</span>
+            <span class="tag type">${(a.type||'aid').toUpperCase()}</span>
+            <span class="tag ${a.verified?'verified':'pending'}">${a.verified?'✓ VERIFIED':'⏳ PENDING'}</span>
+          </div>
+        </div>
+      </div>
+      ${sel?`<div class="card-expand">
+        <div class="info-grid">
+          <div class="info-item"><div class="info-lbl">أوقات العمل / HOURS</div><div class="info-val">${a.hours||'—'}</div></div>
+          <div class="info-item"><div class="info-lbl">الطاقة / CAPACITY</div><div class="info-val">${a.capacity||'—'}</div></div>
+          <div class="info-item"><div class="info-lbl">PHONE</div><div class="info-val" style="color:var(--blue)">${a.phone||'—'}</div></div>
+          <div class="info-item"><div class="info-lbl">ADDED BY</div><div class="info-val">${a.added_by||'volunteer'}</div></div>
+        </div>
+        ${a.items?`<div class="info-block"><div class="info-lbl">AVAILABLE</div><div style="font-size:11px;margin-top:2px;line-height:1.6">${a.items}</div></div>`:''}
+        ${a.note?`<div class="info-block" style="background:rgba(255,183,3,0.05);border:1px solid rgba(255,183,3,0.15)"><div class="info-lbl" style="color:var(--amber)">⚠ NOTE</div><div style="font-size:11px;margin-top:2px;line-height:1.5">${a.note}</div></div>`:''}
+        <div class="act-row">
+          ${a.phone?`<a href="tel:${a.phone}" onclick="event.stopPropagation()" class="act-btn call">📞 CALL</a>`:`<div class="act-btn call" style="opacity:0.4">📞 NO PHONE</div>`}
+          <a href="https://www.openstreetmap.org/directions?from=${userLat},${userLng}&to=${a.lat||userLat},${a.lng||userLng}" target="_blank" onclick="event.stopPropagation()" class="act-btn nav">🗺 GO</a>
+          <button class="act-btn fav" onclick="event.stopPropagation();toggleFav('${a.id}')">${fav?'♥':'♡'}</button>
+        </div>
+      </div>`:''}
+    </div>`;
+  }).join('');
+}
+
+function selectCard(id) {
+  selectedId=selectedId===id?null:id;
+  if(currentView==='list') renderCards(getFiltered());
+  if(selectedId&&leafMap){
+    const a=allAids.find(x=>x.id===id);
+    if(a&&a.lat&&a.lng){
+      leafMap.flyTo([a.lat,a.lng],15,{animate:true,duration:0.8});
+      switchView('map');
+    }
+  }
+  setTimeout(()=>document.getElementById('c-'+id)?.scrollIntoView({behavior:'smooth',block:'nearest'}),80);
+}
+
+// ═══════════════════════════════════════
+// CONTACTS
+// ═══════════════════════════════════════
+const EMERG=[
+  {n:'Lebanese Red Cross',ar:'الصليب الأحمر',p:'140',d:'24/7 Emergency & ambulance',ic:'🚑',c:'ci-red'},
+  {n:'Civil Defense',ar:'الدفاع المدني',p:'175',d:'Fire, rescue, emergency',ic:'🚒',c:'ci-red'},
+  {n:'Police / Internal Security',ar:'قوى الأمن',p:'112',d:'Police emergencies',ic:'👮',c:'ci-blue'},
+  {n:'Lebanese Army',ar:'الجيش اللبناني',p:'1717',d:'Military emergency',ic:'🪖',c:'ci-green'},
+  {n:'Ministry of Health Hotline',ar:'وزارة الصحة',p:'1214',d:'Health emergencies',ic:'🏥',c:'ci-red'},
+];
+const INTL=[
+  {n:'UNHCR Lebanon',ar:'مفوضية اللاجئين',p:'+961 1 850 178',d:'UN Refugee Agency',ic:'🌍',c:'ci-blue'},
+  {n:'MSF Emergency',ar:'أطباء بلا حدود',p:'+961 1 320 056',d:'Medical emergencies',ic:'🏥',c:'ci-red'},
+  {n:'UNICEF Lebanon',ar:'يونيسف',p:'+961 1 786 600',d:'Children & water',ic:'👶',c:'ci-blue'},
+  {n:'WFP Lebanon',ar:'برنامج الأغذية',p:'+961 1 981 200',d:'Food emergency',ic:'🍱',c:'ci-amber'},
+  {n:'IOM Lebanon',ar:'منظمة الهجرة',p:'+961 1 371 200',d:'Shelter & displacement',ic:'🏠',c:'ci-amber'},
+  {n:'UNIFIL HQ',ar:'اليونيفيل',p:'+961 1 511 600',d:'UN peacekeeping',ic:'🛡️',c:'ci-green'},
+  {n:'IRC Lebanon',ar:'اللجنة الدولية للإنقاذ',p:'+961 1 960 140',d:'Relief & recovery',ic:'🌐',c:'ci-blue'},
+];
+const HOSP=[
+  {n:'AUB Medical Center',ar:'مستشفى الجامعة الأمريكية',p:'+961 1 350 000',d:'Beirut — Level 1 trauma',ic:'🏥',c:'ci-red'},
+  {n:'Rafic Hariri University Hospital',ar:'مستشفى رفيق الحريري',p:'+961 1 849 979',d:'Beirut — Public ER 24/7',ic:'🏥',c:'ci-red'},
+  {n:'Saint George Hospital',ar:'مستشفى القديس جاورجيوس',p:'+961 1 585 700',d:'Beirut — Emergency',ic:'🏥',c:'ci-blue'},
+  {n:'Makassed Hospital',ar:'مستشفى المقاصد',p:'+961 1 636 000',d:'Beirut West',ic:'🏥',c:'ci-blue'},
+  {n:'Al-Hariri Hospital Sidon',ar:'مستشفى الحريري صيدا',p:'+961 7 720 700',d:'Sidon — ER 24/7',ic:'🏥',c:'ci-red'},
+  {n:'Jabal Amel — Tyre',ar:'مستشفى جبل عامل',p:'+961 7 348 800',d:'Tyre — Surgery',ic:'🏥',c:'ci-red'},
+  {n:'Ragheb Harb — Nabatieh',ar:'مستشفى راغب حرب',p:'+961 7 540 000',d:'Nabatieh — ER',ic:'🏥',c:'ci-blue'},
+  {n:'Tripoli Governmental',ar:'مستشفى طرابلس الحكومي',p:'+961 6 628 000',d:'Tripoli — North ER',ic:'🏥',c:'ci-blue'},
+  {n:'Zahle Governmental',ar:'مستشفى زحلة الحكومي',p:'+961 8 813 400',d:'Bekaa Valley — ER',ic:'🏥',c:'ci-green'},
+  {n:'Baalbek National Hospital',ar:'المستشفى الوطني بعلبك',p:'+961 8 373 940',d:'Baalbek — Bekaa',ic:'🏥',c:'ci-green'},
+];
+
+function renderContacts() {
+  const mk=list=>list.map(c=>`<div class="contact-item">
+    <div class="ci-icon ${c.c}">${c.ic}</div>
+    <div style="flex:1;min-width:0">
+      <div class="ci-name">${lang==='ar'&&c.ar?c.ar:c.n}</div>
+      <div class="ci-num">${c.p}</div>
+      <div class="ci-desc">${c.d}</div>
+    </div>
+    <a href="tel:${c.p}" class="call-btn">CALL</a>
+  </div>`).join('');
+  document.getElementById('emergList').innerHTML=mk(EMERG);
+  document.getElementById('intlList').innerHTML=mk(INTL);
+  document.getElementById('hospList').innerHTML=mk(HOSP);
+}
+
+// ═══════════════════════════════════════
+// SUBMIT FORMS
+// ═══════════════════════════════════════
+async function submitAid() {
+  const name=document.getElementById('a_name').value.trim();
+  const loc=document.getElementById('a_loc').value.trim();
+  const phone=document.getElementById('a_phone').value.trim();
+  if(!name||!loc||!phone){alert(t('Please fill Name, Address and Phone.','يرجى ملء الاسم والعنوان والهاتف.'));return;}
+  const btn=document.getElementById('addBtn'); btn.disabled=true; btn.textContent='SUBMITTING...';
+  // Geocode address to get lat/lng
+  let lat=userLat,lng=userLng;
+  try {
+    const gr=await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(loc+' Lebanon')}&format=json&limit=1`);
+    const gd=await gr.json();
+    if(gd&&gd[0]){lat=parseFloat(gd[0].lat);lng=parseFloat(gd[0].lon);}
+  } catch(e){}
+  try {
+    const {error}=await db.from('aid_locations').insert({
+      name, name_ar:document.getElementById('a_name_ar').value.trim(),
+      type:document.getElementById('a_type').value,
+      location:loc, status:document.getElementById('a_status').value,
+      hours:document.getElementById('a_hours').value.trim(),
+      capacity:document.getElementById('a_cap').value.trim(),
+      items:document.getElementById('a_items').value.trim(),
+      phone, org:document.getElementById('a_by').value.trim()||'Volunteer',
+      note:document.getElementById('a_note').value.trim(),
+      added_by:currentUser?currentUser.email:(document.getElementById('a_by').value.trim()||'volunteer'),
+      verified:false, lat, lng,
+    });
+    if(error) throw error;
+    document.getElementById('addOk').style.display='block';
+    ['a_name','a_name_ar','a_loc','a_hours','a_cap','a_items','a_phone','a_by','a_note'].forEach(id=>document.getElementById(id).value='');
+    await loadAids();
+  } catch(e){alert(t('Error: '+e.message,'خطأ: '+e.message));}
+  btn.disabled=false; btn.textContent='📍 SUBMIT LOCATION';
+}
+
+async function submitOffer() {
+  const name=document.getElementById('v_name').value.trim();
+  const phone=document.getElementById('v_phone').value.trim();
+  const loc=document.getElementById('v_loc').value.trim();
+  if(!name||!phone||!loc){alert(t('Fill Name, Phone and Location.','يرجى ملء الاسم والهاتف والموقع.'));return;}
+  const btn=document.getElementById('offerBtn'); btn.disabled=true; btn.textContent='POSTING...';
+  try {
+    const {error}=await db.from('help_offers').insert({
+      name, phone, type:document.getElementById('v_type').value,
+      location:loc, description:document.getElementById('v_desc').value.trim(),
+      available_until:document.getElementById('v_until').value.trim(),
+      lat:userLat, lng:userLng,
+    });
+    if(error) throw error;
+    document.getElementById('offerOk').style.display='block';
+    ['v_name','v_phone','v_loc','v_desc','v_until'].forEach(id=>document.getElementById(id).value='');
+    loadVolunteers();
+  } catch(e){alert(t('Error: '+e.message,'خطأ: '+e.message));}
+  btn.disabled=false; btn.textContent='🤝 POST HELP OFFER';
+}
+
+async function submitAlertReport() {
+  const txt=document.getElementById('al_txt').value.trim();
+  if(!txt){alert(t('Please write the alert message.','يرجى كتابة رسالة التنبيه.'));return;}
+  const btn=document.getElementById('alertBtn'); btn.disabled=true; btn.textContent='SENDING...';
+  try {
+    const {error}=await db.from('alerts').insert({
+      level:document.getElementById('al_lvl').value,
+      text:txt, text_ar:document.getElementById('al_ar').value.trim(),
+      zone:document.getElementById('al_zone').value,
+      source:document.getElementById('al_src').value.trim()||'Field volunteer',
+      active:true,
+    });
+    if(error) throw error;
+    document.getElementById('alertOk').style.display='block';
+    ['al_txt','al_ar','al_src'].forEach(id=>document.getElementById(id).value='');
+    await refreshAll();
+  } catch(e){alert(t('Error: '+e.message,'خطأ: '+e.message));}
+  btn.disabled=false; btn.textContent='⚡ SEND ALERT NOW';
+}
+
+async function loadVolunteers() {
+  const el=document.getElementById('volList');
+  try {
+    const {data,error}=await db.from('help_offers').select('*').order('created_at',{ascending:false}).limit(50);
+    if(error) throw error;
+    if(!data||!data.length){el.innerHTML=`<div class="empty"><div class="empty-icon">🤝</div>No helpers yet.<br>Be the first!</div>`;return;}
+    const em={transport:'🚗',food:'🍱',medical:'🩺',shelter:'🏠',supplies:'📦',other:'🤝'};
+    el.innerHTML='<div style="padding:8px 0">'+data.map((v,i)=>`
+      <div class="vol-card" style="animation-delay:${i*0.04}s">
+        <div class="vol-name">${v.name}</div>
+        <div class="vol-type">${em[v.type]||'🤝'} ${(v.type||'HELP').toUpperCase()} · ${v.location}</div>
+        ${v.description?`<div class="vol-desc">${v.description}</div>`:''}
+        ${v.available_until?`<div class="vol-desc" style="color:var(--muted)">⏱ Until: ${v.available_until}</div>`:''}
+        <a href="tel:${v.phone}" class="vol-call">📞 ${v.phone}</a>
+      </div>`).join('')+'</div>';
+  } catch(e){el.innerHTML=`<div class="empty">Connection error.</div>`;}
+}
+
+// ═══════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════
+function calcDist(lat,lng) {
+  if(!lat||!lng) return '?';
+  const R=6371,dLat=(lat-userLat)*Math.PI/180,dLng=(lng-userLng)*Math.PI/180;
+  const a=Math.sin(dLat/2)**2+Math.cos(userLat*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.sin(dLng/2)**2;
+  const d=R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return d<1?(d*1000).toFixed(0)+'m':d.toFixed(1)+' km';
+}
+function getNearestAid() {
+  if(!allAids.length) return 'None available';
+  let near=null,min=Infinity;
+  allAids.forEach(a=>{
+    if(!a.lat||!a.lng) return;
+    const R=6371,dLat=(a.lat-userLat)*Math.PI/180,dLng=(a.lng-userLng)*Math.PI/180;
+    const d=R*2*Math.atan2(Math.sqrt(Math.sin(dLat/2)**2+Math.cos(userLat*Math.PI/180)*Math.cos(a.lat*Math.PI/180)*Math.sin(dLng/2)**2),Math.sqrt(1-Math.sin(dLat/2)**2-Math.cos(userLat*Math.PI/180)*Math.cos(a.lat*Math.PI/180)*Math.sin(dLng/2)**2));
+    if(d<min){min=d;near=a;}
+  });
+  return near?`${near.name} — ${min.toFixed(1)}km`:'None found';
+}
+
+// ═══════════════════════════════════════
+// UI NAVIGATION
+// ═══════════════════════════════════════
+function setAidFilter(f,btn) {
+  aidFilter=f;
+  document.querySelectorAll('[id^="af-"]').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  selectedId=null;
+  const filtered=getFiltered();
+  renderCards(filtered);
+  renderAidMarkers(filtered);
+}
+
+function switchView(v) {
+  currentView=v;
+  document.getElementById('vt-map').classList.toggle('active',v==='map');
+  document.getElementById('vt-list').classList.toggle('active',v==='list');
+  document.getElementById('mapWrap').style.display=v==='map'?'flex':'none';
+  document.getElementById('listWrap').style.display=v==='list'?'block':'none';
+  if(v==='map') setTimeout(()=>leafMap&&leafMap.invalidateSize(),100);
+}
+
+function showTab(tab) {
+  // Hide ALL screens by setting display none
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
+  
+  // Hide ALL nav active states
+  document.querySelectorAll('.nav-item').forEach(n => {
+    n.classList.remove('active');
+  });
+  
+  // Show selected screen
+  const selectedScreen = document.getElementById('screen-' + tab);
+  if (selectedScreen) {
+    selectedScreen.classList.add('active');
+    selectedScreen.style.display = 'flex';
+  }
+  
+  // Activate selected nav
+  const selectedNav = document.getElementById('nav-' + tab);
+  if (selectedNav) selectedNav.classList.add('active');
+  
+  // Handle special cases
+  if (tab === 'alerts') {
+    document.getElementById('newsBadge').style.display = 'none';
+    renderAlertsList();
+  }
+  if (tab === 'contacts') renderContacts();
+  if (tab === 'help') loadVolunteers();
+  if (tab === 'map') {
+    setTimeout(() => leafMap && leafMap.invalidateSize(), 150);
+  }
+  
+  // Show locate button only on map tab
+  const locateBtn = document.getElementById('locateBtn');
+  if (locateBtn) {
+    locateBtn.style.display = tab === 'map' ? 'flex' : 'none';
+  }
+}
+
+function setHelpTab(tab,btn) {
+  document.querySelectorAll('.ht').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  ['add','offer','alert','volunteers'].forEach(t=>{
+    const el=document.getElementById('helpTab-'+t);
+    if(el){el.style.display=t===tab?'flex':'none';if(t===tab)el.style.flexDirection='column';}
+  });
+  if(tab==='volunteers') loadVolunteers();
+}
+
+function toggleFav(id) {
+  saved=saved.includes(id)?saved.filter(x=>x!==id):[...saved,id];
+  localStorage.setItem('najda_saved',JSON.stringify(saved));
+  renderCards(getFiltered());
+}
+
+// Universal translation — updates ALL elements with data-en/data-ar attributes
+function applyLang() {
+  const ar = lang === 'ar';
+  // Translate ALL elements with data-en/data-ar
+  document.querySelectorAll('[data-en]').forEach(el => {
+    el.textContent = ar ? el.getAttribute('data-ar') : el.getAttribute('data-en');
+  });
+  // Search input placeholder
+  const si = document.getElementById('searchInput');
+  if(si) si.placeholder = ar ? 'ابحث عن مساعدة، موقع، مستشفى...' : 'Search aid, hospital, street, city...';
+  // Results label
+  const rl = document.getElementById('resultsLabel');
+  if(rl) rl.textContent = ar ? 'نقاط المساعدة القريبة' : 'AID POINTS NEARBY';
+  // Chip filter labels
+  document.querySelectorAll('.chip[data-ar],.chip[data-en]').forEach(el=>{
+    el.textContent = ar ? el.getAttribute('data-ar') : el.getAttribute('data-en');
+  });
+  // Filter row labels
+  document.querySelectorAll('[data-en]').forEach(el=>{
+    el.textContent = ar ? (el.getAttribute('data-ar')||el.textContent) : el.getAttribute('data-en');
+  });
+  // View tabs
+  const vtm = document.getElementById('vt-map');
+  if(vtm) vtm.textContent = ar ? '🗺 الخريطة' : '🗺 MAP';
+  const vtl = document.getElementById('vt-list');
+  if(vtl) {
+    const cnt = document.getElementById('countLbl');
+    const cntText = cnt ? cnt.textContent : '';
+    vtl.innerHTML = (ar?'☰ القائمة':'☰ LIST')+' <span id="countLbl" style="color:var(--green)">'+cntText+'</span>';
+  }
+  // Screen titles
+  const screenTitles = {
+    'screen-alerts':   [ar?'⚡ أخبار وتنبيهات':'⚡ LIVE NEWS & ALERTS',  ar?'تحديثات مباشرة — كل لبنان':'Real-time updates — All Lebanon'],
+    'screen-contacts': [ar?'📞 أرقام الطوارئ':'📞 EMERGENCY CONTACTS',    ar?'اتصال بلمسة — يعمل بدون إنترنت':'One-tap call — works offline'],
+    'screen-help':     [ar?'🤝 مركز المساعدة':'🤝 HELP CENTER',            ar?'أضف موقع · عرض مساعدة · إبلاغ':'Add aid · Offer help · Report'],
+    'screen-settings': [ar?'⚙ الإعدادات':'⚙ SETTINGS',                    ar?'تفضيلات التطبيق':'App preferences & info'],
+  };
+  Object.entries(screenTitles).forEach(([id,[title,sub]])=>{
+    const sc=document.getElementById(id);
+    if(!sc) return;
+    const t1=sc.querySelector('.scr-title'); if(t1) t1.textContent=title;
+    const t2=sc.querySelector('.scr-sub'); if(t2) t2.textContent=sub;
+  });
+  // SOS modal
+  document.querySelector('#sosModal .modal-title') && (document.querySelector('#sosModal .modal-title').textContent = ar?'⚠ نجدة نشطة':'⚠ SOS ACTIVE');
+  document.querySelector('#sosModal .modal-sub') && (document.querySelector('#sosModal .modal-sub').textContent = ar?'سيتم إرسال موقعك GPS لخدمات الطوارئ':'GPS location sent to emergency services');
+  // Modal row keys
+  const modalKeys = document.querySelectorAll('#sosModal .modal-key');
+  const mkEN = ['LOCATION','TIME','NEAREST AID'];
+  const mkAR = ['الموقع','الوقت','أقرب مساعدة'];
+  modalKeys.forEach((el,i)=>{ if(mkEN[i]) el.textContent = ar?mkAR[i]:mkEN[i]; });
+  // Account modal
+  const accTitle = document.querySelector('#accountModal .modal-title');
+  if(accTitle) accTitle.textContent = ar?'👤 حسابي':'👤 MY ACCOUNT';
+  const accSub = document.querySelector('#accountLoginView .modal-sub');
+  if(accSub) accSub.textContent = ar?'سجّل دخولك لإدارة إرسالاتك':'Sign in to manage your submissions';
+  // Account form labels
+  const accEmail = document.querySelector('#accountLoginView label:first-of-type');
+  // Settings items
+  document.querySelectorAll('.s-label').forEach(el=>{
+    const map = {
+      'Push Alerts':'تنبيهات فورية',
+      'SOS Auto-Share':'مشاركة SOS تلقائياً',
+      'Language':'اللغة',
+      'Admin Panel':'لوحة التحكم',
+      'Active Lebanese News Sources':'مصادر الأخبار اللبنانية',
+    };
+    const arTxt = map[el.textContent.trim()];
+    if(ar && arTxt) el.textContent = arTxt;
+    else if(!ar) {
+      Object.entries(map).forEach(([en,arv])=>{ if(el.textContent.trim()===arv) el.textContent=en; });
+    }
+  });
+  document.querySelectorAll('.s-desc').forEach(el=>{
+    const map = {
+      'Critical updates & new aid points':'تحديثات عاجلة ونقاط مساعدة جديدة',
+      'Share GPS with Red Cross on SOS':'مشاركة GPS مع الصليب الأحمر',
+      'English':'العربية',
+      'Verify, delete & manage all submissions':'تحقق وإدارة جميع الإرسالات',
+      'Built for all of Lebanon. Real-time community data + live news. Works offline. Free forever.':'مبني لكل لبنان. بيانات حية + أخبار مباشرة. يعمل بدون إنترنت. مجاني للأبد.',
+    };
+    const arTxt = map[el.textContent.trim()];
+    if(ar && arTxt) el.textContent = arTxt;
+  });
+  // Setting section dividers
+  document.querySelectorAll('.divider-lbl').forEach(el=>{
+    const map = {
+      'NOTIFICATIONS':'الإشعارات','DISPLAY':'العرض','NEWS SOURCES':'مصادر الأخبار',
+      '🛡️ SAFE ZONES — ALL LEBANON':'🛡️ المناطق الآمنة','ADMIN':'لوحة التحكم','ABOUT':'عن التطبيق',
+      '🚨 EMERGENCY — DIAL NOW':'🚨 طوارئ — اتصل الآن',
+      '🌍 INTERNATIONAL AID ORGS':'🌍 منظمات الإغاثة الدولية',
+      '🏥 HOSPITALS — ALL LEBANON':'🏥 المستشفيات — كل لبنان',
+    };
+    const txt = el.textContent.trim();
+    if(ar) { const a=map[txt]; if(a) el.textContent=a; }
+    else { Object.entries(map).forEach(([en,av])=>{ if(txt===av) el.textContent=en; }); }
+  });
+  // Help tabs
+  const htabs = document.querySelectorAll('.ht');
+  const htEN = ['📍 ADD AID','🏠 OFFER HELP','⚡ REPORT','👥 HELPERS'];
+  const htAR = ['📍 إضافة موقع','🏠 عرض مساعدة','⚡ إبلاغ','👥 المتطوعون'];
+  htabs.forEach((el,i)=>{ if(htEN[i]) el.textContent=ar?htAR[i]:htEN[i]; });
+  // Alert tabs
+  const atabs = document.querySelectorAll('.at');
+  const atEN = ['ALL','📰 NEWS','📡 FIELD','🔴 CRITICAL'];
+  const atAR = ['الكل','📰 أخبار','📡 ميداني','🔴 حرج'];
+  atabs.forEach((el,i)=>{ if(atEN[i]) el.textContent=ar?atAR[i]:atEN[i]; });
+  // Form submit buttons
+  document.querySelectorAll('.submit-btn').forEach(el=>{
+    const map = {
+      '📍 إرسال الموقع / SUBMIT LOCATION':'📍 إرسال الموقع',
+      '🤝 نشر عرض المساعدة / POST HELP OFFER':'🤝 نشر عرض المساعدة',
+      '⚡ إرسال التنبيه / SEND ALERT NOW':'⚡ إرسال التنبيه الآن',
+    };
+    const enMap = {
+      '📍 إرسال الموقع':'📍 إرسال الموقع / SUBMIT LOCATION',
+      '🤝 نشر عرض المساعدة':'🤝 نشر عرض المساعدة / POST HELP OFFER',
+      '⚡ إرسال التنبيه الآن':'⚡ إرسال التنبيه / SEND ALERT NOW',
+    };
+    if(ar) { const a=map[el.textContent.trim()]; if(a) el.textContent=a; }
+  });
+  // Open/Close buttons
+  document.querySelectorAll('.lang-btn').forEach(el=>{
+    if(el.id==='accBtn') el.textContent='👤';
+    else if(el.textContent==='EN'||el.textContent==='عر') el.textContent=ar?'EN':'عر';
+    else if(el.textContent==='Switch'||el.textContent==='تبديل') el.textContent=ar?'تبديل':'Switch';
+    else if(el.textContent==='OPEN'||el.textContent==='فتح') el.textContent=ar?'فتح':'OPEN';
+  });
+  // Header subtitle
+  const logoAr = document.querySelector('.logo-ar');
+  if(logoAr) logoAr.textContent = ar?'نجدة — طوارئ لبنان':'نجدة — Lebanon Emergency';
+}
+
+function toggleLang() {
+  lang = lang === 'en' ? 'ar' : 'en';
+  const ar = lang === 'ar';
+  document.documentElement.dir = ar ? 'rtl' : 'ltr';
+
+  // Header
+  document.getElementById('langBtn').textContent = ar ? 'EN' : 'عر';
+  document.getElementById('langDesc') && (document.getElementById('langDesc').textContent = ar ? 'العربية' : 'English');
+  var logoAr = document.querySelector('.logo-ar');
+  if (logoAr) logoAr.textContent = ar ? 'نجدة — طوارئ لبنان' : 'نجدة — Lebanon Emergency';
+
+  // Search
+  var si = document.getElementById('searchInput');
+  if (si) si.placeholder = ar ? 'ابحث عن مساعدة، مستشفى، شارع...' : 'Search aid, hospital, street, city...';
+  var sb = document.getElementById('searchBtn');
+  if (sb) sb.textContent = ar ? 'بحث' : 'Search';
+
+  // Aid filter chips
+  var chipMap = {
+    'af-all':      ['ALL','الكل'],
+    'af-food':     ['🍱 FOOD','🍱 طعام'],
+    'af-medical':  ['🩺 MEDICAL','🩺 طبي'],
+    'af-water':    ['💧 WATER','💧 مياه'],
+    'af-shelter':  ['🏠 SHELTER','🏠 مأوى'],
+    'af-safezone': ['🛡️ SAFE','🛡️ آمن'],
+  };
+  Object.entries(chipMap).forEach(function(e) {
+    var el = document.getElementById(e[0]);
+    if (el) el.textContent = ar ? e[1][1] : e[1][0];
+  });
+
+  // POI chips
+  var poiMap = {
+    'poi-hospitals':  ['🏥 HOSPITALS','🏥 مستشفيات'],
+    'poi-pharmacies': ['💊 PHARMACY','💊 صيدليات'],
+    'poi-restaurants':['🍽️ FOOD','🍽️ مطاعم'],
+    'poi-mosques':    ['🕌 MOSQUE','🕌 مساجد'],
+    'poi-churches':   ['⛪ CHURCH','⛪ كنائس'],
+    'poi-atms':       ['🏧 ATM','🏧 صراف'],
+    'poi-fuel':       ['⛽ FUEL','⛽ وقود'],
+    'poi-danger':     ['⚠️ DANGER','⚠️ خطر'],
+  };
+  Object.entries(poiMap).forEach(function(e) {
+    var el = document.getElementById(e[0]);
+    if (el) el.textContent = ar ? e[1][1] : e[1][0];
+  });
+
+  // Map legend
+  var legend = document.getElementById('mapLegend');
+  if (legend) {
+    legend.querySelectorAll('[data-en]').forEach(function(s) {
+      s.textContent = ar ? s.getAttribute('data-ar') : s.getAttribute('data-en');
+    });
+    var legTitle = document.getElementById('legendTitle');
+    if (legTitle) legTitle.textContent = ar ? 'دليل الخريطة' : 'MAP LEGEND';
+  }
+
+  // View tabs
+  var vtm = document.getElementById('vt-map');
+  if (vtm) vtm.textContent = ar ? '🗺 الخريطة' : '🗺 MAP';
+  var vtl = document.getElementById('vt-list');
+  if (vtl) {
+    var cnt = document.getElementById('countLbl');
+    var cntTxt = cnt ? cnt.textContent : '';
+    vtl.innerHTML = (ar ? '☰ القائمة' : '☰ LIST') + ' <span id="countLbl" style="color:var(--green)">' + cntTxt + '</span>';
+  }
+
+  // Results label
+  var rl = document.getElementById('resultsLabel');
+  if (rl) rl.textContent = ar ? 'نقاط المساعدة القريبة' : 'AID POINTS NEARBY';
+
+  // Bottom nav
+  var navMap = [
+    ['nav-map',      'MAP',      'الخريطة'],
+    ['nav-alerts',   'NEWS',     'الأخبار'],
+    ['nav-contacts', 'CONTACTS', 'اتصالات'],
+    ['nav-help',     'HELP',     'مساعدة'],
+    ['nav-settings', 'SETTINGS', 'الإعدادات'],
+  ];
+  navMap.forEach(function(n) {
+    var el = document.querySelector('#' + n[0] + ' .nav-lbl');
+    if (el) el.textContent = ar ? n[2] : n[1];
+  });
+
+  // Screen headers
+  var screenMap = {
+    'screen-alerts':   [ar?'⚡ أخبار وتنبيهات':'⚡ LIVE NEWS & ALERTS', ar?'تحديثات مباشرة — كل لبنان':'Real-time updates — All Lebanon'],
+    'screen-contacts': [ar?'📞 أرقام الطوارئ':'📞 EMERGENCY CONTACTS', ar?'اتصال فوري — يعمل بدون إنترنت':'One-tap call — works offline'],
+    'screen-help':     [ar?'🤝 مركز المساعدة':'🤝 HELP CENTER', ar?'أضف موقع · عرض مساعدة · إبلاغ':'Add aid · Offer help · Report'],
+    'screen-settings': [ar?'⚙ الإعدادات':'⚙ SETTINGS', ar?'تفضيلات التطبيق':'App preferences & info'],
+  };
+  Object.entries(screenMap).forEach(function(e) {
+    var sc = document.getElementById(e[0]);
+    if (!sc) return;
+    var t = sc.querySelector('.scr-title'); if (t) t.textContent = e[1][0];
+    var s = sc.querySelector('.scr-sub');   if (s) s.textContent = e[1][1];
+  });
+
+  // Alert tabs
+  var atabs = document.querySelectorAll('.at');
+  var atEN = ['ALL','📰 NEWS','📡 FIELD','🔴 CRITICAL'];
+  var atAR = ['الكل','📰 أخبار','📡 ميداني','🔴 حرج'];
+  atabs.forEach(function(el, i) { if (atEN[i]) el.textContent = ar ? atAR[i] : atEN[i]; });
+
+  // Help tabs
+  var htabs = document.querySelectorAll('.ht');
+  var htEN = ['📍 ADD AID','🏠 OFFER HELP','⚡ REPORT','👥 HELPERS'];
+  var htAR = ['📍 إضافة موقع','🏠 عرض مساعدة','⚡ إبلاغ','👥 المتطوعون'];
+  htabs.forEach(function(el, i) { if (htEN[i]) el.textContent = ar ? htAR[i] : htEN[i]; });
+
+  // Divider labels
+  var divMap = {
+    'NOTIFICATIONS':           'الإشعارات',
+    'DISPLAY':                 'العرض',
+    'NEWS SOURCES':            'مصادر الأخبار',
+    '🛡️ SAFE ZONES — ALL LEBANON': '🛡️ المناطق الآمنة',
+    'ADMIN':                   'لوحة التحكم',
+    'ABOUT':                   'عن التطبيق',
+    '🚨 EMERGENCY — DIAL NOW': '🚨 طوارئ — اتصل الآن',
+    '🌍 INTERNATIONAL AID ORGS':'🌍 منظمات الإغاثة',
+    '🏥 HOSPITALS — ALL LEBANON':'🏥 المستشفيات',
+  };
+  document.querySelectorAll('.divider-lbl').forEach(function(el) {
+    var txt = el.textContent.trim();
+    if (ar) { var a = divMap[txt]; if (a) el.textContent = a; }
+    else { Object.entries(divMap).forEach(function(e) { if (txt === e[1]) el.textContent = e[0]; }); }
+  });
+
+  // Settings labels
+  var sLblMap = {
+    'Push Alerts':        'تنبيهات فورية',
+    'SOS Auto-Share':     'مشاركة SOS تلقائياً',
+    'Language':           'اللغة',
+    'Admin Panel':        'لوحة التحكم',
+  };
+  document.querySelectorAll('.s-label').forEach(function(el) {
+    var txt = el.textContent.trim();
+    if (ar) { var a = sLblMap[txt]; if (a) el.textContent = a; }
+    else { Object.entries(sLblMap).forEach(function(e) { if (txt === e[1]) el.textContent = e[0]; }); }
+  });
+
+  // Form submit buttons
+  var btnMap = {
+    '📍 SUBMIT LOCATION': '📍 إرسال الموقع',
+    '🤝 POST HELP OFFER': '🤝 نشر عرض المساعدة',
+    '⚡ SEND ALERT NOW':  '⚡ إرسال التنبيه',
+    '📍 إرسال الموقع':    '📍 SUBMIT LOCATION',
+    '🤝 نشر عرض المساعدة':'🤝 POST HELP OFFER',
+    '⚡ إرسال التنبيه':   '⚡ SEND ALERT NOW',
+  };
+  document.querySelectorAll('.submit-btn').forEach(function(el) {
+    var txt = el.textContent.trim();
+    var a = btnMap[txt]; if (a) el.textContent = a;
+  });
+
+  // Form placeholders
+  var phMap = [
+    ['a_name',    'e.g. My home available for families',   'مثال: منزلي متاح للعائلات'],
+    ['a_loc',     'Street, area, city — be very specific', 'الشارع، المنطقة، المدينة'],
+    ['a_hours',   'e.g. 8am–10pm',                         'مثال: ٨ص–١٠م'],
+    ['a_cap',     'e.g. 3 families',                       'مثال: ٣ عائلات'],
+    ['a_items',   'e.g. Room, food, WiFi, bathroom',       'مثال: غرفة، طعام، واي فاي'],
+    ['a_phone',   '+961 ...',                              '+961 ...'],
+    ['a_by',      'Name or organization',                  'اسمك أو منظمتك'],
+    ['a_note',    'Important info for people arriving...', 'معلومات مهمة للقادمين...'],
+    ['v_name',    'Your name',                             'اسمك'],
+    ['v_phone',   '+961 ...',                              '+961 ...'],
+    ['v_loc',     'Beirut, Tripoli, Sidon...',             'بيروت، طرابلس، صيدا...'],
+    ['v_desc',    'e.g. I have a spare room in Beirut...', 'مثال: لدي غرفة في بيروت...'],
+    ['v_until',   'e.g. End of month, indefinitely',      'مثال: نهاية الشهر، إلى أجل غير مسمى'],
+    ['al_txt',    'e.g. Road blocked on Beirut highway...','مثال: الطريق مقطوع على أوتوستراد...'],
+    ['al_src',    'e.g. Lebanese Red Cross, volunteer...',  'مثال: الصليب الأحمر، متطوع...'],
+    ['acc_email', 'your@email.com',                        'بريدك@مثال.com'],
+    ['acc_pass',  'Password',                              'كلمة المرور'],
+  ];
+  phMap.forEach(function(p) {
+    var el = document.getElementById(p[0]);
+    if (el) el.placeholder = ar ? p[2] : p[1];
+  });
+
+  // Form field labels
+  document.querySelectorAll('.fl').forEach(function(el) {
+    var lMap = {
+      'TYPE *':'النوع *','STATUS':'الحالة','LOCATION NAME *':'اسم الموقع *',
+      'اسم الموقع بالعربية':'Arabic Name','FULL ADDRESS *':'العنوان الكامل *',
+      'HOURS':'أوقات العمل','CAPACITY':'الطاقة','WHAT YOU OFFER':'ما تقدمه',
+      'CONTACT PHONE *':'رقم الاتصال *','YOUR NAME / ORG':'اسمك / المنظمة',
+      'NOTES':'ملاحظات','YOUR NAME *':'اسمك *','PHONE *':'الهاتف *',
+      'TYPE OF HELP *':'نوع المساعدة *','YOUR AREA / CITY *':'منطقتك / المدينة *',
+      'DESCRIBE YOUR HELP':'صف مساعدتك','AVAILABLE UNTIL':'متاح حتى',
+      'SEVERITY *':'الخطورة *','ZONE *':'المنطقة *',
+      'ALERT MESSAGE (English) *':'رسالة التنبيه (إنجليزي) *',
+      'رسالة التنبيه (بالعربية)':'Alert Message (Arabic)',
+      'YOUR NAME / SOURCE':'اسمك / المصدر','EMAIL':'البريد الإلكتروني',
+      'PASSWORD':'كلمة المرور',
+    };
+    var txt = el.textContent.trim();
+    if (ar) { var a = lMap[txt]; if (a) el.textContent = a; }
+    else { Object.entries(lMap).forEach(function(e) { if (txt === e[1]) el.textContent = e[0]; }); }
+  });
+
+  // Account modal
+  var accTitle = document.querySelector('#accountLoginView .modal-title');
+  if (accTitle) accTitle.textContent = ar ? '👤 حسابي' : '👤 MY ACCOUNT';
+  var accSub = document.querySelector('#accountLoginView .modal-sub');
+  if (accSub) accSub.textContent = ar ? 'سجّل دخولك لإدارة إرسالاتك' : 'Sign in to manage your submissions';
+  var signInBtn = document.querySelector('#accountLoginView .modal-confirm');
+  if (signInBtn) signInBtn.textContent = ar ? 'تسجيل الدخول' : 'SIGN IN';
+  var signUpBtn = document.querySelector('#accountLoginView .modal-cancel');
+  if (signUpBtn && signUpBtn.textContent.includes('ACCOUNT')) signUpBtn.textContent = ar ? 'إنشاء حساب' : 'CREATE ACCOUNT';
+
+  // Form notes
+  document.querySelectorAll('.form-note').forEach(function(el) {
+    if (el.textContent.includes('volunteers')) el.textContent = ar ? 'يراجعه المتطوعون قبل النشر · شكراً' : 'Reviewed by volunteers before going live · شكراً';
+    if (el.textContent.includes('immediately')) el.textContent = ar ? 'ينشر فوراً · العائلات تتواصل معك مباشرة' : 'Goes live immediately · Families contact you directly';
+    if (el.textContent.includes('verified info')) el.textContent = ar ? 'ينشر فوراً للجميع في لبنان · أبلغ عن معلومات موثّقة فقط' : 'Goes live immediately to ALL users · Only report verified info';
+  });
+
+  // Ticker label
+  var tl = document.querySelector('.ticker-lbl');
+  if (tl) tl.textContent = ar ? '⚡ مباشر' : '⚡ LIVE';
+
+  // Online/Offline
+  document.getElementById('btn-online') && (document.getElementById('btn-online').textContent = ar ? '🌐 اتصال' : '🌐 ONLINE');
+  document.getElementById('btn-offline') && (document.getElementById('btn-offline').textContent = ar ? '📵 غير متصل' : '📵 OFFLINE');
+
+
+  rotateTicker();
+  renderCards(getFiltered());
+  renderAlertsList();
+  renderContacts();
+}
+
+
+
+// ═══════════════════════════════════════
+// REALTIME SUPABASE
+// ═══════════════════════════════════════
+function setupRealtime() {
+  db.channel('rt_aids').on('postgres_changes',{event:'*',schema:'public',table:'aid_locations'},()=>loadAids()).subscribe();
+  db.channel('rt_alerts').on('postgres_changes',{event:'*',schema:'public',table:'alerts'},()=>refreshAll()).subscribe();
+  db.channel('rt_help').on('postgres_changes',{event:'*',schema:'public',table:'help_offers'},()=>{
+    if(document.getElementById('helpTab-volunteers')?.style.display!=='none') loadVolunteers();
+  }).subscribe();
+}
+
+// ═══════════════════════════════════════
+// LOAD ALL
+// ═══════════════════════════════════════
+async function loadAll(){
+  await Promise.all([loadAids(), refreshAll()]);
+}
+
+// ═══════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════
+
+// ═══════════════════════════════════════
+// ACCOUNT SYSTEM — Supabase Auth
+// ═══════════════════════════════════════
+let currentUser = null;
+
+async function signIn() {
+  const email = document.getElementById('acc_email').value.trim();
+  const pass = document.getElementById('acc_pass').value;
+  if (!email||!pass) { showAccError('Please fill email and password'); return; }
+  try {
+    const {data,error} = await db.auth.signInWithPassword({email, password:pass});
+    if (error) throw error;
+    currentUser = data.user;
+    showAccountDash();
+  } catch(e) { showAccError(e.message); }
+}
+
+async function signUp() {
+  const email = document.getElementById('acc_email').value.trim();
+  const pass = document.getElementById('acc_pass').value;
+  if (!email||!pass) { showAccError('Please fill email and password'); return; }
+  if (pass.length < 6) { showAccError('Password must be at least 6 characters'); return; }
+  try {
+    const {data,error} = await db.auth.signUp({email, password:pass});
+    if (error) throw error;
+    showAccError('✅ Account created! Check your email to confirm, then sign in.', true);
+  } catch(e) { showAccError(e.message); }
+}
+
+async function signOut() {
+  await db.auth.signOut();
+  currentUser = null;
+  document.getElementById('accountDashView').style.display='none';
+  document.getElementById('accountLoginView').style.display='block';
+}
+
+function showAccError(msg, success=false) {
+  const el = document.getElementById('accError');
+  el.style.display='block';
+  el.style.color = success ? 'var(--green)' : 'var(--red)';
+  el.textContent = msg;
+}
+
+async function showAccountDash() {
+  document.getElementById('accountLoginView').style.display='none';
+  document.getElementById('accountDashView').style.display='block';
+  document.getElementById('accUserEmail').textContent = currentUser.email;
+  loadMySubmissions();
+}
+
+async function loadMySubmissions() {
+  const el = document.getElementById('mySubmissions');
+  try {
+    const {data,error} = await db.from('aid_locations')
+      .select('*').eq('added_by', currentUser.email)
+      .order('created_at',{ascending:false});
+    if (error) throw error;
+    if (!data||!data.length) {
+      el.innerHTML = '<div style="font-size:11px;color:var(--muted);padding:8px 0">No submissions yet.</div>';
+      return;
+    }
+    el.innerHTML = data.map(a => `
+      <div style="background:var(--bg2);border:1px solid var(--border);border-radius:7px;padding:8px 10px;margin-bottom:6px">
+        <div style="font-size:12px;font-weight:700;color:var(--text)">${a.name}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:1px">${a.location}</div>
+        <div style="display:flex;gap:5px;margin-top:5px;align-items:center;flex-wrap:wrap">
+          <span class="tag ${a.status||'open'}">${a.status||'open'}</span>
+          <span class="tag ${a.verified?'verified':'pending'}">${a.verified?'✓ VERIFIED':'⏳ PENDING'}</span>
+          <button onclick="deleteMyAid('${a.id}')" style="margin-left:auto;background:rgba(230,57,70,0.15);border:1px solid rgba(230,57,70,0.3);color:var(--red);border-radius:5px;padding:3px 8px;font-size:10px;cursor:pointer;font-family:var(--sans)">🗑 Delete</button>
+        </div>
+      </div>`).join('');
+  } catch(e) {
+    el.innerHTML = '<div style="font-size:11px;color:var(--red)">Error loading submissions.</div>';
+  }
+}
+
+async function deleteMyAid(id) {
+  if (!confirm(t('Delete this location?','حذف هذا الموقع؟'))) return;
+  try {
+    const {error} = await db.from('aid_locations').delete().eq('id',id).eq('added_by',currentUser.email);
+    if (error) throw error;
+    loadMySubmissions();
+    loadAids();
+  } catch(e) { alert('Error: '+e.message); }
+}
+
+function openAccount() {
+  // Check if already logged in
+  db.auth.getSession().then(({data}) => {
+    if (data.session) {
+      currentUser = data.session.user;
+      document.getElementById('accountModal').classList.add('show');
+      showAccountDash();
+    } else {
+      document.getElementById('accountModal').classList.add('show');
+    }
+  });
+}
+function closeAccount() { document.getElementById('accountModal').classList.remove('show'); }
+
+// ═══════════════════════════════════════
+// ADMIN PANEL
+// ═══════════════════════════════════════
+let adminPass = '';
+
+
+
+
+
+
+
+
+
+
+
+
+// Live Lebanon clock
+
+
+
+// Live Beirut clock - compact
+function startClock() {
+  function tick() {
+    const now = new Date();
+    const str = now.toLocaleString('en-GB',{timeZone:'Asia/Beirut',weekday:'short',day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
+    ['lbClock','lbClock2'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.textContent = str;
+    });
+  }
+  tick();
+  setInterval(tick, 1000);
+}
+
+
+// ═══ AUTO DANGER ZONES FROM NEWS ═══
+const LB_LOCATIONS = {
+  'بيروت':[33.8938,35.5018],'beirut':[33.8938,35.5018],
+  'الجنوب':[33.2705,35.2038],'south lebanon':[33.2705,35.2038],'جنوب':[33.2705,35.2038],
+  'النبطية':[33.3777,35.4840],'nabatieh':[33.3777,35.4840],
+  'صور':[33.2705,35.2038],'tyre':[33.2705,35.2038],
+  'صيدا':[33.5571,35.3729],'sidon':[33.5571,35.3729],
+  'طرابلس':[34.4367,35.8497],'tripoli':[34.4367,35.8497],
+  'البقاع':[33.8462,35.9016],'bekaa':[33.8462,35.9016],
+  'بعلبك':[34.0042,36.2097],'baalbek':[34.0042,36.2097],
+  'الضاحية':[33.8400,35.4900],'dahiye':[33.8400,35.4900],
+  'بنت جبيل':[33.1200,35.4300],'bint jbeil':[33.1200,35.4300],
+  'مرجعيون':[33.3569,35.5853],'marjeyoun':[33.3569,35.5853],
+  'زحلة':[33.8500,35.9010],'zahle':[33.8500,35.9010],
+  'قانا':[33.2000,35.2900],'qana':[33.2000,35.2900],
+  'الناقورة':[33.1100,35.1400],'naqoura':[33.1100,35.1400],
+  'الهرمل':[34.3954,36.3864],'hermel':[34.3954,36.3864],
+  'عكار':[34.5300,36.0800],'akkar':[34.5300,36.0800],
+  'الشوف':[33.6500,35.5500],'chouf':[33.6500,35.5500],
+  'عاليه':[33.7700,35.5900],'aley':[33.7700,35.5900],
+  'الخيام':[33.3200,35.5600],'khiam':[33.3200,35.5600],
+};
+const DANGER_KEYWORDS = [
+  'غارة','غارات','قصف','انفجار','صاروخ','صواريخ','مسيرة',
+  'استهداف','اشتباك','ضربة','اعتداء','قذيفة','شهيد','شهداء','قتيل',
+  'airstrike','bombing','explosion','rocket','missile','attack','strike','drone','shelling','killed'
+];
+var dangerMarkers = [];
+
+function detectDangerZonesFromNews(items) {
+  if (!leafMap) return;
+  dangerMarkers.forEach(function(m){ try{ leafMap.removeLayer(m); }catch(e){} });
+  dangerMarkers = [];
+  var added = {};
+  items.forEach(function(item) {
+    var text = ((item.text||'') + ' ' + (item.desc||'')).toLowerCase();
+    var isDanger = DANGER_KEYWORDS.some(function(kw){ return text.indexOf(kw.toLowerCase()) > -1; });
+    if (!isDanger) return;
+    var entries = Object.entries(LB_LOCATIONS);
+    for (var j=0; j<entries.length; j++) {
+      var name = entries[j][0], coords = entries[j][1];
+      if (text.indexOf(name.toLowerCase()) > -1 && !added[name]) {
+        added[name] = true;
+        var circle = L.circle(coords, {
+          radius:3500, color:'#E63946', fillColor:'#E63946',
+          fillOpacity:0.18, weight:2, dashArray:'6,4'
+        }).addTo(leafMap);
+        circle.bindPopup(
+          '<div style="font-size:11px;font-family:sans-serif">' +
+          '<b style="color:#E63946">⚠ ' + (text.indexOf('غارة')>-1||text.indexOf('airstrike')>-1?'AIRSTRIKE':'DANGER') + '</b><br>' +
+          '<span style="color:#555">' + (item.text||'').substring(0,80) + '</span><br>' +
+          '<span style="color:#999;font-size:9px">' + (item.source||'') + '</span>' +
+          '</div>'
+        );
+        dangerMarkers.push(circle);
+        break;
+      }
+    }
+  });
+  console.log('Danger zones:', dangerMarkers.length);
+}
+
+async function init() {
+  initMap();
+  initGPS();
+  startClock();
+  renderContacts();
+  testSupabaseConnection();
+  await loadAll();
+  setupRealtime();
+  setInterval(rotateTicker, 5000);
+  setInterval(refreshAll, 2*60*1000); // refresh news every 2 min (matches bot)
+}
+window.onload=init;
+</script>
+<!-- ======================================== -->
+<!-- MESH TAB v2 — TACTICAL BT COMMS        -->
+<!-- ======================================== -->
+<style>
+/* ── MESH SCREEN SCOPED STYLES ── */
+#screen-mesh {
+  display:none; flex-direction:column; flex:1; overflow:hidden;
+  background: var(--bg);
+}
+#screen-mesh.active { display:flex; }
+
+/* Sub-views inside mesh */
+#mesh-view-radar, #mesh-view-chat { display:none; flex-direction:column; flex:1; overflow:hidden; min-height:0; }
+#mesh-view-radar.mv-active { display:flex; }
+#mesh-view-chat.mv-active   { display:flex; }
+
+/* Radar header sub-tabs */
+.mesh-subtabs {
+  display:flex; background:var(--bg2);
+  border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.mesh-st {
+  flex:1; padding:7px 4px; text-align:center;
+  font-family:var(--mono); font-size:9px; font-weight:700;
+  color:var(--muted); cursor:pointer;
+  border-bottom:2px solid transparent; letter-spacing:0.5px;
+  transition:all 0.2s;
+}
+.mesh-st.active { color:var(--blue); border-bottom-color:var(--blue); }
+
+/* ── RADAR ── */
+.radar-outer {
+  flex:1; display:flex; align-items:center; justify-content:center;
+  position:relative; overflow:hidden; min-height:0;
+  max-height:calc(100% - 180px);
+  background:
+    radial-gradient(ellipse at center, rgba(88,166,255,0.04) 0%, transparent 70%),
+    repeating-linear-gradient(0deg,transparent,transparent 28px,rgba(88,166,255,0.03) 28px,rgba(88,166,255,0.03) 29px),
+    repeating-linear-gradient(90deg,transparent,transparent 28px,rgba(88,166,255,0.03) 28px,rgba(88,166,255,0.03) 29px);
+}
+.radar-disc {
+  position:relative; border-radius:50%;
+  border:2px solid rgba(88,166,255,0.25);
+  box-shadow:0 0 30px rgba(88,166,255,0.08), inset 0 0 50px rgba(88,166,255,0.02);
+  flex-shrink:0;
+}
+.radar-disc svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+.radar-sweep {
+  position:absolute; top:50%; left:50%;
+  width:50%; height:2px;
+  background:linear-gradient(90deg, rgba(88,166,255,0.9), rgba(88,166,255,0));
+  transform-origin:left center;
+  animation:meshSweep 3s linear infinite;
+  box-shadow:0 0 6px rgba(88,166,255,0.5);
+  z-index:10;
+}
+@keyframes meshSweep { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+.radar-trail {
+  position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(from 0deg, rgba(88,166,255,0) 280deg, rgba(88,166,255,0.12) 360deg);
+  animation:meshSweep 3s linear infinite;
+  pointer-events:none; z-index:9;
+}
+.radar-ch { position:absolute; background:rgba(88,166,255,0.1); pointer-events:none; z-index:5; }
+.radar-ch.h { top:50%; left:0; right:0; height:1px; transform:translateY(-50%); }
+.radar-ch.v { left:50%; top:0; bottom:0; width:1px; transform:translateX(-50%); }
+.radar-center-dot {
+  position:absolute; top:50%; left:50%;
+  transform:translate(-50%,-50%);
+  width:10px; height:10px; border-radius:50%;
+  background:var(--blue);
+  box-shadow:0 0 0 3px rgba(88,166,255,0.25), 0 0 12px var(--blue);
+  z-index:30;
+}
+.radar-blip {
+  position:absolute; border-radius:50%;
+  transform:translate(-50%,-50%);
+  cursor:pointer; z-index:20;
+  transition:opacity 0.4s;
+}
+.radar-blip::after {
+  content:''; position:absolute; inset:-4px; border-radius:50%;
+  animation:blipRing 1.8s ease-out infinite;
+}
+.radar-blip.najda { width:10px; height:10px; background:var(--green); box-shadow:0 0 8px var(--green); }
+.radar-blip.najda::after { border:1px solid var(--green); }
+.radar-blip.generic { width:9px; height:9px; background:var(--amber); box-shadow:0 0 8px var(--amber); }
+.radar-blip.generic::after { border:1px solid var(--amber); }
+@keyframes blipRing { 0%{opacity:.7;transform:scale(1)} 100%{opacity:0;transform:scale(3.2)} }
+.blip-lbl {
+  position:absolute; top:13px; left:50%; transform:translateX(-50%);
+  font-family:var(--mono); font-size:7px; color:var(--text);
+  white-space:nowrap; text-shadow:0 0 4px var(--bg);
+}
+/* overlay corner info */
+.radar-corner {
+  position:absolute; background:rgba(13,17,23,0.88);
+  border:1px solid var(--border); border-radius:4px;
+  padding:5px 8px; font-family:var(--mono); font-size:8px;
+  line-height:1.7; z-index:50;
+}
+.radar-corner.tl { top:8px; left:8px; }
+.radar-corner.tr { top:8px; right:8px; }
+.rc-lbl { color:var(--muted); }
+.rc-val { color:var(--blue); }
+
+/* ── DEVICE LIST PANEL ── */
+.mesh-devpanel {
+  max-height:140px; overflow-y:auto;
+  border-top:1px solid var(--border); flex-shrink:0;
+  scrollbar-width:thin; scrollbar-color:var(--border2) var(--bg2);
+}
+.mesh-devrow {
+  display:flex; align-items:center; gap:8px;
+  padding:7px 11px; border-bottom:1px solid rgba(255,255,255,0.04);
+  cursor:pointer; transition:background 0.15s;
+}
+.mesh-devrow:hover { background:rgba(88,166,255,0.04); }
+.mesh-devrow.linked { background:rgba(0,255,136,0.05); border-left:2px solid var(--green); }
+.mdr-icon { font-size:15px; flex-shrink:0; }
+.mdr-body { flex:1; min-width:0; }
+.mdr-name { font-family:var(--mono); font-size:10px; font-weight:700; color:var(--text); }
+.mdr-meta { font-size:8px; color:var(--muted); margin-top:1px; }
+.mdr-sig { font-family:var(--mono); font-size:8px; text-align:right; flex-shrink:0; }
+.mdr-btn {
+  background:transparent; border:1px solid var(--border2);
+  color:var(--blue); font-family:var(--mono); font-size:8px;
+  padding:3px 8px; border-radius:3px; cursor:pointer;
+  flex-shrink:0; transition:all 0.2s; letter-spacing:0.5px;
+}
+.mdr-btn:hover { background:rgba(88,166,255,0.1); }
+.mdr-btn.active { border-color:var(--green); color:var(--green); background:rgba(0,255,136,0.08); }
+
+/* ── BOTTOM ACTION BAR ── */
+.mesh-actionbar {
+  background:var(--bg2); border-top:1px solid var(--border);
+  padding:8px 10px; display:flex; gap:6px; flex-shrink:0; align-items:center;
+}
+.mesh-scan-btn {
+  flex:1; background:rgba(88,166,255,0.1);
+  border:1px solid var(--blue);
+  color:var(--blue); font-family:var(--mono); font-size:10px; font-weight:700;
+  padding:10px; border-radius:4px; cursor:pointer;
+  letter-spacing:1.5px; transition:all 0.2s;
+  position:relative; overflow:hidden;
+}
+.mesh-scan-btn:hover { background:rgba(88,166,255,0.18); box-shadow:0 0 12px rgba(88,166,255,0.3); }
+.mesh-scan-btn:disabled { opacity:0.4; cursor:default; }
+.mesh-scan-btn.scanning {
+  animation:scanPulseBlue 1s ease-in-out infinite;
+}
+@keyframes scanPulseBlue {
+  0%,100%{box-shadow:0 0 6px rgba(88,166,255,0.2)}
+  50%{box-shadow:0 0 18px rgba(88,166,255,0.6)}
+}
+.mesh-stop-btn {
+  background:transparent; border:1px solid rgba(230,57,70,0.4);
+  color:var(--red); font-family:var(--mono); font-size:9px;
+  padding:10px 12px; border-radius:4px; cursor:pointer;
+  transition:all 0.2s; letter-spacing:0.5px;
+}
+.mesh-stop-btn:hover { background:rgba(230,57,70,0.08); }
+.mesh-chat-btn {
+  background:rgba(0,255,136,0.1); border:1px solid var(--green);
+  color:var(--green); font-family:var(--mono); font-size:9px;
+  padding:10px 12px; border-radius:4px; cursor:pointer;
+  transition:all 0.2s; letter-spacing:0.5px; display:none;
+}
+.mesh-chat-btn:hover { background:rgba(0,255,136,0.18); box-shadow:0 0 10px rgba(0,255,136,0.3); }
+
+/* ── STATUS BAR ── */
+.mesh-statusbar {
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:4px 11px; display:flex; align-items:center; gap:10px;
+  flex-shrink:0; overflow-x:auto; scrollbar-width:none;
+}
+.mesh-statusbar::-webkit-scrollbar { display:none; }
+.msb-item { display:flex; align-items:center; gap:4px; white-space:nowrap; }
+.msb-dot { width:5px; height:5px; border-radius:50%; }
+.msb-txt { font-family:var(--mono); font-size:7px; letter-spacing:0.5px; }
+
+/* ── CHAT VIEW ── */
+.mesh-chat-header {
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:8px 11px; flex-shrink:0;
+}
+.mch-top { display:flex; align-items:center; gap:8px; margin-bottom:4px; }
+.mch-badge {
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg3); border:1px solid var(--border2);
+  border-radius:4px; padding:3px 8px;
+  font-family:var(--mono); font-size:8px; letter-spacing:0.5px;
+}
+.mch-stats { display:flex; gap:10px; }
+.mch-stat { font-family:var(--mono); font-size:8px; color:var(--muted); }
+.mch-stat span { color:var(--text); }
+
+.mesh-messages {
+  flex:1; overflow-y:auto; padding:8px 10px;
+  display:flex; flex-direction:column; gap:5px;
+  background:var(--bg);
+  scrollbar-width:thin; scrollbar-color:var(--border2) var(--bg2);
+}
+.mm { display:flex; flex-direction:column; animation:mmIn 0.2s ease both; max-width:82%; }
+@keyframes mmIn { from{opacity:0;transform:translateY(3px)} to{opacity:1;transform:translateY(0)} }
+.mm.out { align-self:flex-end; align-items:flex-end; }
+.mm.inc { align-self:flex-start; align-items:flex-start; }
+.mm.sys { align-self:center; align-items:center; max-width:100%; }
+.mm-bubble {
+  padding:7px 11px; font-size:12px; line-height:1.4; font-family:var(--mono);
+  word-break:break-word;
+}
+.mm.out .mm-bubble {
+  background:rgba(88,166,255,0.12); border:1px solid rgba(88,166,255,0.3);
+  color:var(--blue); border-radius:10px 10px 2px 10px;
+}
+.mm.inc .mm-bubble {
+  background:var(--bg2); border:1px solid var(--border2);
+  color:var(--text); border-radius:10px 10px 10px 2px;
+}
+.mm.sys .mm-bubble {
+  background:rgba(255,183,3,0.06); border:1px solid rgba(255,183,3,0.18);
+  color:var(--amber); font-size:9px; letter-spacing:0.3px;
+  border-radius:4px; text-align:center;
+}
+.mm-meta { font-family:var(--mono); font-size:7px; color:var(--muted); margin-top:2px; }
+.mm.out .mm-meta { text-align:right; }
+.mm-enc { font-size:7px; color:rgba(0,255,136,0.4); margin-left:4px; }
+
+.mesh-typing {
+  display:none; align-items:center; gap:4px;
+  padding:5px 11px; font-family:var(--mono); font-size:8px; color:var(--muted);
+}
+.mt-dot { width:4px; height:4px; border-radius:50%; background:var(--muted); animation:mtDot 1.2s infinite; }
+.mt-dot:nth-child(2){animation-delay:0.2s} .mt-dot:nth-child(3){animation-delay:0.4s}
+@keyframes mtDot{0%,80%,100%{opacity:.2}40%{opacity:1}}
+
+.mesh-input-area {
+  background:var(--bg2); border-top:1px solid var(--border);
+  padding:7px 10px; flex-shrink:0;
+}
+.mia-row { display:flex; gap:6px; align-items:flex-end; }
+.mia-input {
+  flex:1; background:var(--bg3); border:1px solid var(--border2);
+  border-radius:6px; padding:9px 11px; font-size:12px;
+  color:var(--text); font-family:var(--mono); outline:none; resize:none;
+  max-height:80px; transition:border-color 0.2s;
+}
+.mia-input:focus { border-color:var(--blue); }
+.mia-input::placeholder { color:var(--muted); }
+.mia-input:disabled { opacity:0.3; }
+.mia-send {
+  background:rgba(88,166,255,0.12); border:1px solid var(--blue);
+  color:var(--blue); font-family:var(--mono); font-size:10px; font-weight:700;
+  padding:9px 14px; border-radius:6px; cursor:pointer; letter-spacing:1px;
+  align-self:stretch; transition:all 0.2s;
+}
+.mia-send:hover { background:rgba(88,166,255,0.2); box-shadow:0 0 10px rgba(88,166,255,0.3); }
+.mia-send:disabled { opacity:0.3; cursor:default; }
+.mia-tools { display:flex; gap:4px; margin-top:5px; align-items:center; }
+.mia-tool {
+  background:var(--bg3); border:1px solid var(--border);
+  color:var(--muted); font-size:12px; padding:4px 8px;
+  border-radius:4px; cursor:pointer; transition:all 0.2s;
+}
+.mia-tool:hover { border-color:var(--blue); color:var(--blue); }
+.mia-tool:disabled { opacity:0.3; cursor:default; pointer-events:none; }
+.mia-enc {
+  margin-left:auto; display:flex; align-items:center; gap:3px;
+  font-family:var(--mono); font-size:7px; color:rgba(0,255,136,0.5);
+  border:1px solid rgba(0,255,136,0.1); padding:3px 6px; border-radius:3px;
+}
+.mia-back {
+  background:transparent; border:1px solid var(--border2);
+  color:var(--muted); font-family:var(--mono); font-size:8px;
+  padding:4px 8px; border-radius:3px; cursor:pointer; letter-spacing:0.5px;
+  transition:all 0.2s;
+}
+.mia-back:hover { border-color:var(--blue); color:var(--blue); }
+</style>
+
+<script>
+(function() {
+'use strict';
+
+// ══ CONFIG ══
+const MESH_CFG = {
+  serviceUUID: 'f47b5e2d-4a9e-4c5a-9b3f-8e1d2c3a4b5c',
+  chatUUID:    'a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d',
+};
+
+// ══ STATE ══
+let meshState = {
+  scanning: false,
+  devices: [],           // discovered devices
+  connected: null,       // connected device object
+  gatt: null,
+  chatChar: null,
+  pktTx: 0,
+  pktRx: 0,
+  view: 'radar',         // 'radar' | 'chat'
+  btOK: !!navigator.bluetooth,
+  radarSize: 260,
+};
+
+// ══ HELPERS ══
+function mCalcDist(rssi) {
+  if (!rssi) return 999;
+  const ratio = rssi / -59;
+  const d = ratio < 1 ? Math.pow(ratio, 10) : (0.89976 * Math.pow(ratio, 7.7095)) + 0.111;
+  return Math.max(1, Math.round(d * 10));
+}
+function mSigInfo(rssi) {
+  if (rssi >= -50) return { bars:'████', color:var_green, txt:'Excellent' };
+  if (rssi >= -60) return { bars:'███░', color:var_green, txt:'Good'      };
+  if (rssi >= -70) return { bars:'██░░', color:'#FFB703', txt:'Fair'      };
+  if (rssi >= -80) return { bars:'█░░░', color:'#FF8C00', txt:'Weak'      };
+  return               { bars:'░░░░', color:'#E63946', txt:'Very Weak' };
+}
+const var_green = '#00FF88';
+
+function mTS() {
+  return new Date().toLocaleTimeString('en-GB',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+function mDevIcon(name) {
+  if (!name) return '📟';
+  const n = name.toUpperCase();
+  if (n.includes('NAJDA')) return '📡';
+  if (n.includes('IPHONE') || n.includes('APPLE')) return '📱';
+  if (n.includes('SAMSUNG') || n.includes('GALAXY')) return '📱';
+  if (n.includes('REDMI') || n.includes('XIAOMI')) return '📱';
+  return '📶';
+}
+
+// ══ BUILD SCREEN ══
+function buildMeshScreen() {
+  if (document.getElementById('screen-mesh')) return;
+
+  const scr = document.createElement('div');
+  scr.id = 'screen-mesh';
+  scr.className = 'screen';
+
+  scr.innerHTML = `
+  <!-- SUB-TABS -->
+  <div class="mesh-subtabs">
+    <div class="mesh-st active" id="mst-radar" onclick="meshShowView('radar')">📡 RADAR / SCAN</div>
+    <div class="mesh-st" id="mst-chat"  onclick="meshShowView('chat')">💬 CHAT</div>
+  </div>
+
+  <!-- STATUS BAR -->
+  <div class="mesh-statusbar" id="meshStatusBar">
+    <div class="msb-item"><div class="msb-dot" style="background:#555"></div><span class="msb-txt" style="color:var(--muted)">BT: --</span></div>
+    <div class="msb-item"><div class="msb-dot" style="background:#555"></div><span class="msb-txt" style="color:var(--muted)">LINK: NONE</span></div>
+    <div class="msb-item"><div class="msb-dot" style="background:rgba(0,255,136,0.5)"></div><span class="msb-txt" style="color:rgba(0,255,136,0.5)">NO-INTERNET</span></div>
+    <div class="msb-item"><div class="msb-dot" style="background:rgba(0,255,136,0.5)"></div><span class="msb-txt" style="color:rgba(0,255,136,0.5)">ENC:ON</span></div>
+  </div>
+
+  <!-- ═══ RADAR VIEW ═══ -->
+  <div id="mesh-view-radar" class="mv-active">
+
+    <div class="radar-outer" id="meshRadarOuter">
+      <!-- Corner info overlays -->
+      <div class="radar-corner tl" id="meshCornerL">
+        <div><span class="rc-lbl">CONTACTS </span><span class="rc-val" id="mcContactCount">0</span></div>
+        <div><span class="rc-lbl">NAJDA    </span><span class="rc-val" id="mcNajdaCount" style="color:#00FF88">0</span></div>
+        <div><span class="rc-lbl">GENERIC  </span><span class="rc-val" id="mcGenCount" style="color:#FFB703">0</span></div>
+      </div>
+      <div class="radar-corner tr" id="meshCornerR">
+        <div><span class="rc-lbl">MODE </span><span class="rc-val" id="mcMode">IDLE</span></div>
+        <div><span class="rc-lbl">RNG  </span><span class="rc-val" id="mcRange">100m</span></div>
+        <div><span class="rc-lbl">TIME </span><span class="rc-val" id="mcClock">--:--:--</span></div>
+      </div>
+
+      <!-- RADAR DISC -->
+      <div class="radar-disc" id="meshRadarDisc">
+        <svg id="meshRadarSVG" viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"></svg>
+        <div class="radar-trail"></div>
+        <div class="radar-sweep" id="meshSweepLine"></div>
+        <div class="radar-ch h"></div>
+        <div class="radar-ch v"></div>
+        <div class="radar-center-dot"></div>
+        <div id="meshBlips"></div>
+      </div>
+    </div>
+
+    <!-- DEVICE LIST -->
+    <div class="mesh-devpanel" id="meshDevPanel">
+      <div style="padding:10px 11px; font-family:var(--mono); font-size:9px; color:var(--muted); text-align:center; letter-spacing:1px;">
+        — NO DEVICES FOUND — PRESS SCAN —
+      </div>
+    </div>
+
+    <!-- ACTION BAR -->
+    <div class="mesh-actionbar">
+      <button class="mesh-scan-btn" id="meshScanBtn" onclick="meshStartScan()">▶ SCAN FOR DEVICES</button>
+      <button class="mesh-stop-btn" id="meshStopBtn" onclick="meshStopScan()">■ STOP</button>
+      <button class="mesh-chat-btn" id="meshToChatBtn" onclick="meshShowView('chat')" style="display:none;">💬 OPEN CHAT</button>
+      <button onclick="sendNearby()" style="background:var(--red);color:#fff;border:none;padding:10px 12px;border-radius:4px;font-weight:700;cursor:pointer;font-size:9px;font-family:var(--mono);letter-spacing:0.5px;white-space:nowrap;flex-shrink:0;">📡 SHARE</button>
+    </div>
+  </div>
+
+  <!-- ═══ CHAT VIEW ═══ -->
+  <div id="mesh-view-chat">
+
+    <div class="mesh-chat-header">
+      <div class="mch-top">
+        <button class="mia-back" onclick="meshShowView('radar')">← RADAR</button>
+        <div class="mch-badge" id="mchBadge">
+          <div class="status-dot" id="mchDot" style="background:#E63946; animation:blink 1.5s infinite;"></div>
+          <span id="mchName">NOT LINKED</span>
+        </div>
+        <button style="margin-left:auto; background:transparent; border:1px solid rgba(230,57,70,0.3); color:var(--red); font-family:var(--mono); font-size:8px; padding:3px 8px; border-radius:3px; cursor:pointer; letter-spacing:0.5px;" id="mchDiscBtn" onclick="meshDisconnect()" style="display:none">DISC</button>
+      </div>
+      <div class="mch-stats" id="mchStats" style="display:none">
+        <div class="mch-stat">RSSI: <span id="mchRSSI">--</span></div>
+        <div class="mch-stat">DIST: <span id="mchDist">--</span></div>
+        <div class="mch-stat">SIG: <span id="mchSig">--</span></div>
+        <div class="mch-stat">TX: <span id="mchTX">0</span> RX: <span id="mchRX">0</span></div>
+      </div>
+    </div>
+
+    <div class="mesh-messages" id="meshMessages">
+      <div class="mm sys"><div class="mm-bubble">NAJDA MESH v2 — BLUETOOTH DIRECT CHANNEL</div></div>
+      <div class="mm sys"><div class="mm-bubble">No internet required · Works offline · Encrypted</div></div>
+    </div>
+
+    <div class="mesh-typing" id="meshTyping">
+      <div class="mt-dot"></div><div class="mt-dot"></div><div class="mt-dot"></div>
+      <span id="meshTypingTxt" style="margin-left:4px;font-size:8px;"></span>
+    </div>
+
+    <div class="mesh-input-area">
+      <div class="mia-row">
+        <textarea class="mia-input" id="meshChatInput" placeholder="Type message — press Enter to send" rows="1"
+          oninput="meshAutoResize(this)"
+          onkeydown="meshHandleKey(event)"
+          disabled></textarea>
+        <button class="mia-send" id="meshSendBtn" onclick="meshSendMessage()" disabled>TX</button>
+      </div>
+      <div class="mia-tools">
+        <button class="mia-tool" id="mTool_loc"  onclick="meshSendLocation()" title="Send my location" disabled>📍</button>
+        <button class="mia-tool" id="mTool_sos"  onclick="meshSendSOS()"      title="SOS DISTRESS"     disabled style="color:#E63946; border-color:rgba(230,57,70,0.3)">🆘</button>
+        <button class="mia-tool" id="mTool_info" onclick="meshSendStatus()"   title="Send status"      disabled>📊</button>
+        <div class="mia-enc">🔒 AES-256</div>
+      </div>
+    </div>
+  </div>
+  `;
+
+  document.body.insertBefore(scr, document.querySelector('.bottom-nav'));
+
+  // ── Add nav item ──
+  const nav = document.querySelector('.bottom-nav');
+  if (nav && !document.getElementById('nav-mesh')) {
+    const ni = document.createElement('div');
+    ni.className = 'nav-item';
+    ni.id = 'nav-mesh';
+    ni.innerHTML = `<div class="nav-icon">📡</div><div class="nav-lbl">MESH</div>`;
+    ni.onclick = () => showMeshTab();
+    nav.appendChild(ni);
+  }
+
+  // ── Patch showTab to hide mesh ──
+  const _origShowTab = window.showTab;
+  window.showTab = function(tab) {
+    if (_origShowTab) _origShowTab(tab);
+    const ms = document.getElementById('screen-mesh');
+    if (ms) { ms.classList.remove('active'); ms.style.display = 'none'; }
+    const mn = document.getElementById('nav-mesh');
+    if (mn) mn.classList.remove('active');
+    const lb = document.getElementById('locateBtn');
+    if (lb) lb.style.display = '';
+  };
+
+  // Start clock
+  setInterval(() => {
+    const el = document.getElementById('mcClock');
+    if (el) el.textContent = new Date().toLocaleTimeString('en-GB',{hour12:false});
+  }, 1000);
+
+  // Size radar
+  requestAnimationFrame(meshSizeRadar);
+}
+
+// ══ SHOW/HIDE MESH TAB ══
+window.showMeshTab = function() {
+  document.querySelectorAll('.screen').forEach(s => { s.classList.remove('active'); s.style.display='none'; });
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const ms = document.getElementById('screen-mesh');
+  if (ms) { ms.classList.add('active'); ms.style.display='flex'; }
+  const mn = document.getElementById('nav-mesh');
+  if (mn) mn.classList.add('active');
+  const lb = document.getElementById('locateBtn');
+  if (lb) lb.style.display = 'none';
+  requestAnimationFrame(meshSizeRadar);
+};
+
+// ══ SUB-VIEWS ══
+window.meshShowView = function(v) {
+  meshState.view = v;
+  document.querySelectorAll('#screen-mesh [id^=mesh-view-]').forEach(el => el.classList.remove('mv-active'));
+  document.querySelectorAll('.mesh-st').forEach(t => t.classList.remove('active'));
+  const vEl = document.getElementById('mesh-view-' + v);
+  const tEl = document.getElementById('mst-' + v);
+  if (vEl) vEl.classList.add('mv-active');
+  if (tEl) tEl.classList.add('active');
+};
+
+// ══ RADAR SIZING ══
+function meshSizeRadar() {
+  const outer = document.getElementById('meshRadarOuter');
+  const disc  = document.getElementById('meshRadarDisc');
+  if (!outer || !disc) return;
+  const s = Math.min(outer.clientWidth - 48, outer.clientHeight - 16, 290);
+  const sz = Math.max(s, 200);
+  disc.style.width  = sz + 'px';
+  disc.style.height = sz + 'px';
+  meshState.radarSize = sz;
+  meshDrawRings(sz);
+  meshRePlotBlips();
+}
+
+function meshDrawRings(sz) {
+  const svg = document.getElementById('meshRadarSVG');
+  if (!svg) return;
+  const cx = 150, cy = 150;
+  let html = '';
+  [0.25, 0.5, 0.75, 1.0].forEach((r, i) => {
+    const rad = r * 140;
+    html += `<circle cx="${cx}" cy="${cy}" r="${rad}" fill="none" stroke="rgba(88,166,255,${0.07 + i*0.02})" stroke-width="1"/>`;
+    const rangeLbl = Math.round(100 * r);
+    html += `<text x="${cx + rad + 3}" y="${cy - 2}" fill="rgba(88,166,255,0.3)" font-size="7" font-family="JetBrains Mono,monospace">${rangeLbl}m</text>`;
+  });
+  html += `<line x1="${cx}" y1="10" x2="${cx}" y2="290" stroke="rgba(88,166,255,0.06)" stroke-width="1"/>`;
+  html += `<line x1="10" y1="${cy}" x2="290" y2="${cy}" stroke="rgba(88,166,255,0.06)" stroke-width="1"/>`;
+  svg.innerHTML = html;
+}
+
+function meshRePlotBlips() {
+  const container = document.getElementById('meshBlips');
+  if (!container) return;
+  container.innerHTML = '';
+  meshState.devices.forEach((dev, i) => meshAddBlip(dev, i, false));
+}
+
+function meshAddBlip(dev, idx, append = true) {
+  const container = document.getElementById('meshBlips');
+  if (!container) return;
+  const sz = meshState.radarSize;
+  const half = sz / 2;
+  const rssi = dev.rssi || -75;
+  const dist = mCalcDist(rssi);
+  const norm = Math.min(dist / 100, 0.88);
+  const angle = (dev._angle || 0) * Math.PI / 180;
+  const x = half + norm * (half - 18) * Math.cos(angle);
+  const y = half + norm * (half - 18) * Math.sin(angle);
+
+  const b = document.createElement('div');
+  b.className = 'radar-blip ' + (dev._isNajda ? 'najda' : 'generic');
+  b.style.left = x + 'px';
+  b.style.top  = y + 'px';
+  b.id = 'mblip-' + idx;
+  b.onclick = () => meshBlipClick(idx);
+  b.innerHTML = `<div class="blip-lbl">${(dev.name||'DEV').substring(0,9).toUpperCase()}</div>`;
+  container.appendChild(b);
+}
+
+function meshBlipClick(idx) {
+  const dev = meshState.devices[idx];
+  if (!dev) return;
+  const sig = mSigInfo(dev.rssi);
+  meshShowToast(`${dev.name} · ${dev.rssi}dBm · ~${mCalcDist(dev.rssi)}m · ${sig.txt}`);
+}
+
+// ══ SCAN ══
+window.meshStartScan = async function() {
+  if (meshState.scanning) return;
+  meshState.scanning = true;
+  const btn = document.getElementById('meshScanBtn');
+  if (btn) { btn.classList.add('scanning'); btn.textContent = '⟳ SCANNING...'; btn.disabled = true; }
+  document.getElementById('mcMode').textContent = 'ACTIVE';
+  meshUpdateStatus();
+
+  if (meshState.btOK) {
+    await meshRealBTScan();
+  } else {
+    meshShowToast('⚠ Bluetooth not available — simulation mode');
+    await meshSimScan();
+  }
+
+  meshState.scanning = false;
+  if (btn) { btn.classList.remove('scanning'); btn.textContent = '▶ SCAN FOR DEVICES'; btn.disabled = false; }
+  document.getElementById('mcMode').textContent = 'IDLE';
+  meshUpdateStatus();
+  meshUpdateCounts();
+};
+
+window.meshStopScan = function() {
+  meshState.scanning = false;
+  const btn = document.getElementById('meshScanBtn');
+  if (btn) { btn.classList.remove('scanning'); btn.textContent = '▶ SCAN FOR DEVICES'; btn.disabled = false; }
+  document.getElementById('mcMode').textContent = 'IDLE';
+};
+
+async function meshRealBTScan() {
+  try {
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [MESH_CFG.serviceUUID]
+    });
+    const rssi = -45 - Math.floor(Math.random() * 40);
+    const devObj = {
+      name: device.name || 'BT Device',
+      rssi: rssi,
+      _angle: Math.random() * 360,
+      _isNajda: device.name ? device.name.includes('NAJDA') : false,
+      _btDevice: device,
+      _sim: false
+    };
+    meshState.devices.push(devObj);
+    const idx = meshState.devices.length - 1;
+    meshAddBlip(devObj, idx);
+    meshRenderDevList();
+    meshShowToast('▶ FOUND: ' + devObj.name);
+  } catch(err) {
+    if (err.name === 'NotFoundError') {
+      meshShowToast('SCAN CANCELLED');
+    } else if (err.name === 'SecurityError') {
+      meshShowToast('⚠ BT PERMISSION DENIED');
+      // Fall back to sim
+      await meshSimScan();
+    } else {
+      meshShowToast('BT ERROR — SIMULATION MODE');
+      await meshSimScan();
+    }
+  }
+}
+
+async function meshSimScan() {
+  // Clear old sim devices
+  meshState.devices = meshState.devices.filter(d => !d._sim);
+  document.getElementById('meshBlips').innerHTML = '';
+
+  const simNames = [
+    'NAJDA_' + Math.random().toString(36).substr(2,4).toUpperCase(),
+    'iPhone ' + Math.floor(Math.random()*4+12),
+    'NAJDA_' + Math.random().toString(36).substr(2,4).toUpperCase(),
+    'Galaxy S' + Math.floor(Math.random()*4+22),
+    'REDMI-NOTE',
+  ];
+  const count = 2 + Math.floor(Math.random() * 3);
+  for (let i = 0; i < count; i++) {
+    if (!meshState.scanning && i > 0) break;
+    await new Promise(r => setTimeout(r, 500 + Math.random() * 700));
+    const name = simNames[i % simNames.length];
+    const rssi = -40 - Math.floor(Math.random() * 48);
+    const devObj = {
+      name: name,
+      rssi: rssi,
+      _angle: Math.random() * 360,
+      _isNajda: name.includes('NAJDA'),
+      _btDevice: null,
+      _sim: true
+    };
+    meshState.devices.push(devObj);
+    const idx = meshState.devices.length - 1;
+    meshAddBlip(devObj, idx);
+    meshRenderDevList();
+    meshUpdateCounts();
+    meshShowToast('▶ FOUND: ' + name, 1500);
+  }
+}
+
+function meshRenderDevList() {
+  const panel = document.getElementById('meshDevPanel');
+  if (!panel) return;
+  if (meshState.devices.length === 0) {
+    panel.innerHTML = `<div style="padding:10px 11px; font-family:var(--mono); font-size:9px; color:var(--muted); text-align:center; letter-spacing:1px;">— NO DEVICES FOUND — PRESS SCAN —</div>`;
+    return;
+  }
+  panel.innerHTML = meshState.devices.map((dev, i) => {
+    const sig = mSigInfo(dev.rssi);
+    const dist = mCalcDist(dev.rssi);
+    const isConn = meshState.connected && meshState.connected === dev;
+    return `<div class="mesh-devrow ${isConn ? 'linked' : ''}" id="mdr-${i}">
+      <div class="mdr-icon">${mDevIcon(dev.name)}</div>
+      <div class="mdr-body">
+        <div class="mdr-name">${dev.name}${dev._sim ? ' <span style="font-size:7px;color:var(--muted)">[SIM]</span>' : ''}</div>
+        <div class="mdr-meta">${dev._isNajda ? '🟢 NAJDA UNIT' : '🟡 GENERIC'} · ~${dist}m · 2.4GHz BLE</div>
+      </div>
+      <div class="mdr-sig">
+        <div style="color:${sig.color}; font-size:9px;">${sig.bars}</div>
+        <div style="font-size:7px; color:var(--muted)">${dev.rssi} dBm</div>
+      </div>
+      <button class="mdr-btn ${isConn ? 'active' : ''}" onclick="meshConnect(${i})">${isConn ? 'LINKED ✓' : 'LINK'}</button>
+    </div>`;
+  }).join('');
+}
+
+function meshUpdateCounts() {
+  const total = meshState.devices.length;
+  const najda = meshState.devices.filter(d => d._isNajda).length;
+  const gen   = total - najda;
+  const cc = document.getElementById('mcContactCount'); if (cc) cc.textContent = total;
+  const nc = document.getElementById('mcNajdaCount');   if (nc) nc.textContent = najda;
+  const gc = document.getElementById('mcGenCount');     if (gc) gc.textContent = gen;
+  // Show chat button if any device exists
+  const cb = document.getElementById('meshToChatBtn');
+  if (cb) cb.style.display = total > 0 ? 'block' : 'none';
+}
+
+// ══ CONNECT ══
+window.meshConnect = async function(idx) {
+  const dev = meshState.devices[idx];
+  if (!dev) return;
+  meshShowToast('⟳ LINKING TO ' + dev.name + '...');
+
+  if (dev._btDevice && dev._btDevice.gatt) {
+    try {
+      const server = await dev._btDevice.gatt.connect();
+      meshState.gatt = server;
+      meshOnConnected(dev);
+    } catch(e) {
+      meshShowToast('❌ LINK FAILED: ' + e.message);
+    }
+  } else {
+    // Simulated connection (200-600ms)
+    await new Promise(r => setTimeout(r, 200 + Math.random() * 400));
+    meshOnConnected(dev);
+  }
+  meshRenderDevList();
+};
+
+function meshOnConnected(dev) {
+  meshState.connected = dev;
+  const sig = mSigInfo(dev.rssi);
+  const dist = mCalcDist(dev.rssi);
+
+  // Update chat header
+  const dot = document.getElementById('mchDot');
+  if (dot) dot.style.background = var_green;
+  const nm = document.getElementById('mchName');
+  if (nm) nm.textContent = dev.name;
+  const stats = document.getElementById('mchStats');
+  if (stats) stats.style.display = 'flex';
+  const r = document.getElementById('mchRSSI'); if (r) r.textContent = dev.rssi + ' dBm';
+  const d = document.getElementById('mchDist'); if (d) d.textContent = '~' + dist + 'm';
+  const s = document.getElementById('mchSig');  if (s) { s.textContent = sig.txt; s.style.color = sig.color; }
+  const db = document.getElementById('mchDiscBtn'); if (db) db.style.display = 'inline-block';
+
+  // Enable chat inputs
+  const inp = document.getElementById('meshChatInput'); if (inp) inp.disabled = false;
+  const sb  = document.getElementById('meshSendBtn');   if (sb)  sb.disabled  = false;
+  ['mTool_loc','mTool_sos','mTool_info'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = false;
+  });
+
+  // Mark blip
+  const blipEl = document.getElementById('mblip-' + meshState.devices.indexOf(dev));
+  if (blipEl) blipEl.classList.add('najda');
+
+  meshUpdateStatus();
+  meshAddMsg('sys', '🔵 LINK ESTABLISHED → ' + dev.name + ' · ' + sig.txt + ' · ' + dist + 'm');
+  meshShowToast('✓ LINKED TO ' + dev.name);
+
+  // Show chat button in radar bar
+  const cb = document.getElementById('meshToChatBtn'); if (cb) cb.style.display = 'block';
+
+  // If sim: schedule a welcome message
+  if (dev._sim) {
+    setTimeout(() => {
+      meshAddMsg('inc', 'NAJDA unit online. Ready to receive. - ' + dev.name, dev.name);
+    }, 1500);
+  }
+}
+
+window.meshDisconnect = function() {
+  if (meshState.gatt) { try { meshState.gatt.disconnect(); } catch(e){} meshState.gatt = null; }
+  const dev = meshState.connected;
+  meshState.connected = null;
+
+  const dot = document.getElementById('mchDot'); if (dot) dot.style.background = '#E63946';
+  const nm  = document.getElementById('mchName'); if (nm) nm.textContent = 'NOT LINKED';
+  const stats = document.getElementById('mchStats'); if (stats) stats.style.display = 'none';
+  const db = document.getElementById('mchDiscBtn'); if (db) db.style.display = 'none';
+  const inp = document.getElementById('meshChatInput'); if (inp) inp.disabled = true;
+  const sb  = document.getElementById('meshSendBtn'); if (sb) sb.disabled = true;
+  ['mTool_loc','mTool_sos','mTool_info'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.disabled = true;
+  });
+
+  meshUpdateStatus();
+  meshRenderDevList();
+  if (dev) meshAddMsg('sys', '🔴 LINK TERMINATED · ' + dev.name);
+  meshShowToast('LINK TERMINATED');
+};
+
+// ══ MESSAGING ══
+window.meshSendMessage = function() {
+  const inp = document.getElementById('meshChatInput');
+  if (!inp) return;
+  const msg = inp.value.trim();
+  if (!msg || !meshState.connected) return;
+
+  meshAddMsg('out', msg);
+  inp.value = '';
+  inp.style.height = '';
+  meshState.pktTx++;
+  const txEl = document.getElementById('mchTX'); if (txEl) txEl.textContent = meshState.pktTx;
+
+  // Simulate reply for demo
+  if (meshState.connected._sim) {
+    const typing = document.getElementById('meshTyping');
+    const typTxt = document.getElementById('meshTypingTxt');
+    setTimeout(() => {
+      if (typing) typing.style.display = 'flex';
+      if (typTxt) typTxt.textContent = meshState.connected.name + ' typing...';
+    }, 300);
+    const replies = ['COPY.','ROGER THAT.','RECEIVED.','WILCO.','ACK — standing by.','NEGATIVE, say again.','AFFIRMATIVE.'];
+    setTimeout(() => {
+      if (typing) typing.style.display = 'none';
+      meshAddMsg('inc', replies[Math.floor(Math.random() * replies.length)], meshState.connected.name);
+      meshState.pktRx++;
+      const rxEl = document.getElementById('mchRX'); if (rxEl) rxEl.textContent = meshState.pktRx;
+    }, 1200 + Math.random() * 1600);
+  }
+};
+
+window.meshSendLocation = function() {
+  if (!meshState.connected) return;
+  if (!navigator.geolocation) { meshShowToast('GPS UNAVAILABLE'); return; }
+  navigator.geolocation.getCurrentPosition(
+    pos => {
+      const lat = pos.coords.latitude.toFixed(5);
+      const lon = pos.coords.longitude.toFixed(5);
+      meshAddMsg('out', `📍 POSITION REPORT: ${lat}°N ${lon}°E ± ${Math.round(pos.coords.accuracy)}m`);
+      meshState.pktTx++;
+      const txEl = document.getElementById('mchTX'); if (txEl) txEl.textContent = meshState.pktTx;
+    },
+    () => {
+      meshAddMsg('out', '📍 POSITION REQUEST — GPS denied');
+    }
+  );
+};
+
+window.meshSendSOS = function() {
+  if (!confirm('⚠ SEND SOS DISTRESS SIGNAL?\nThis will transmit to the linked device immediately.')) return;
+  meshAddMsg('out', '🆘🆘🆘 EMERGENCY SOS — IMMEDIATE ASSISTANCE REQUIRED — ' + new Date().toLocaleTimeString());
+  meshState.pktTx++;
+  const txEl = document.getElementById('mchTX'); if (txEl) txEl.textContent = meshState.pktTx;
+  meshShowToast('🆘 SOS TRANSMITTED');
+};
+
+window.meshSendStatus = function() {
+  if (!meshState.connected) return;
+  const msg = `📊 STATUS: Device online · BT signal ${mSigInfo(meshState.connected.rssi).txt} · ${mCalcDist(meshState.connected.rssi)}m range · ${mTS()}`;
+  meshAddMsg('out', msg);
+  meshState.pktTx++;
+  const txEl = document.getElementById('mchTX'); if (txEl) txEl.textContent = meshState.pktTx;
+};
+
+function meshAddMsg(type, text, sender) {
+  const area = document.getElementById('meshMessages');
+  if (!area) return;
+  const div = document.createElement('div');
+  div.className = 'mm ' + type;
+  const ts = mTS();
+  if (type === 'sys') {
+    div.innerHTML = `<div class="mm-bubble">${text}</div>`;
+  } else {
+    const enc = type === 'out' ? '<span class="mm-enc">🔒</span>' : '';
+    const from = type === 'inc' ? (sender || 'PEER') : 'YOU';
+    div.innerHTML = `<div class="mm-bubble">${text}${enc}</div><div class="mm-meta">${from} · ${ts}</div>`;
+  }
+  area.appendChild(div);
+  area.scrollTop = area.scrollHeight;
+  // unread dot if not on chat view
+  if (meshState.view !== 'chat' && type !== 'out') {
+    const mst = document.getElementById('mst-chat');
+    if (mst) mst.textContent = '💬 CHAT ●';
+  }
+}
+
+// ══ STATUS BAR ══
+function meshUpdateStatus() {
+  const bar = document.getElementById('meshStatusBar');
+  if (!bar) return;
+  const items = [
+    {
+      dot: meshState.btOK ? var_green : '#FFB703',
+      txt: meshState.btOK ? 'BT: OK' : 'BT: SIM',
+      col: meshState.btOK ? var_green : '#FFB703'
+    },
+    {
+      dot: meshState.connected ? var_green : '#555',
+      txt: meshState.connected ? 'LINK: ' + meshState.connected.name.substring(0,10) : 'LINK: NONE',
+      col: meshState.connected ? var_green : 'var(--muted)'
+    },
+    { dot:'rgba(0,255,136,0.5)', txt:'NO-INTERNET', col:'rgba(0,255,136,0.5)' },
+    { dot:'rgba(0,255,136,0.5)', txt:'ENC:ON',      col:'rgba(0,255,136,0.5)' },
+  ];
+  bar.innerHTML = items.map(it =>
+    `<div class="msb-item">
+      <div class="msb-dot" style="background:${it.dot}"></div>
+      <span class="msb-txt" style="color:${it.col}">${it.txt}</span>
+    </div>`
+  ).join('');
+}
+
+// ══ UI HELPERS ══
+window.meshAutoResize = function(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 80) + 'px';
+};
+window.meshHandleKey = function(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); meshSendMessage(); }
+};
+
+let _mToastTimer;
+function meshShowToast(msg, dur = 2200) {
+  let t = document.getElementById('meshToast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'meshToast';
+    t.style.cssText = 'position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--bg2);border:1px solid rgba(88,166,255,0.4);border-radius:4px;padding:7px 14px;font-family:var(--mono);font-size:9px;color:#58A6FF;letter-spacing:1px;z-index:9000;white-space:nowrap;animation:fadeUp 0.2s ease;box-shadow:0 0 12px rgba(88,166,255,0.2)';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  clearTimeout(_mToastTimer);
+  _mToastTimer = setTimeout(() => { if (t) t.style.display = 'none'; }, dur);
+}
+
+// ══ BOOT ══
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', buildMeshScreen);
+} else {
+  buildMeshScreen();
+}
+
+})();
+</script>
+<!-- END MESH TAB v2 -->
+<!-- ACCOUNT MODAL -->
+<div class="modal-bg" id="accountModal">
+  <div class="modal" style="max-height:85vh;overflow-y:auto;">
+    <div id="accountLoginView">
+      <div class="modal-title" style="color:var(--blue)">👤 MY ACCOUNT</div>
+      <div class="modal-sub">Sign in to manage your submissions</div>
+      <div style="margin-bottom:8px">
+        <label class="fl">EMAIL</label>
+        <input class="fi" id="acc_email" type="email" placeholder="بريدك@مثال.com / your@email.com" style="margin-bottom:8px">
+        <label class="fl">PASSWORD</label>
+        <input class="fi" id="acc_pass" type="password" placeholder="Password">
+      </div>
+      <div id="accError" style="color:var(--red);font-size:11px;margin-bottom:8px;display:none"></div>
+      <button class="modal-confirm" style="background:var(--blue);margin-bottom:7px" onclick="signIn()">SIGN IN</button>
+      <button class="modal-confirm" style="background:var(--bg3);color:var(--text);margin-bottom:7px" onclick="signUp()">CREATE ACCOUNT</button>
+      <button class="modal-cancel" onclick="closeAccount()">Cancel</button>
+    </div>
+    <div id="accountDashView" style="display:none">
+      <div class="modal-title" style="color:var(--green)">✅ SIGNED IN</div>
+      <div class="modal-sub" id="accUserEmail"></div>
+      <div style="background:var(--bg3);border-radius:8px;padding:10px;margin-bottom:10px">
+        <div style="font-family:var(--mono);font-size:9px;color:var(--muted);letter-spacing:1px;margin-bottom:6px">MY SUBMISSIONS</div>
+        <div id="mySubmissions"><div class="loading">Loading...</div></div>
+      </div>
+      <button class="modal-confirm" style="background:var(--red);margin-bottom:7px" onclick="signOut()">SIGN OUT</button>
+      <button class="modal-cancel" onclick="closeAccount()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+
+<!-- ======================================== -->
+<!-- NAJDA BLE BRIDGE — injected inline       -->
+<!-- Connects JS mesh UI to native BT plugin  -->
+<!-- Falls back to simulation on plain web    -->
+<!-- ======================================== -->
+<script>
+(function () {
+  'use strict';
+
+  const IS_NATIVE = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+  let BLE = null;
+
+  const bridge = {
+    devices:   [],
+    connected: {},
+    messages:  [],
+    scanning:  false,
+    listeners: {},
+  };
+
+  async function initBLEBridge() {
+    if (IS_NATIVE) {
+      try {
+        const { NajdaBLE } = window.Capacitor.Plugins;
+        BLE = NajdaBLE;
+        await registerNativeListeners();
+        console.log('[NAJDA-BLE] Native plugin connected');
+      } catch (e) {
+        console.warn('[NAJDA-BLE] Plugin not found, falling back to simulation', e);
+        BLE = null;
+      }
+    } else {
+      console.log('[NAJDA-BLE] Web mode — simulation active');
+    }
+    patchMeshScreen();
+  }
+
+  async function registerNativeListeners() {
+    if (!BLE) return;
+    await BLE.addListener('deviceFound', (dev) => {
+      bridge.devices.push(dev);
+      onDeviceFound(dev);
+    });
+    await BLE.addListener('connectionChanged', (evt) => {
+      if (evt.connected) { bridge.connected[evt.address] = evt; onConnected(evt); }
+      else { delete bridge.connected[evt.address]; onDisconnected(evt); }
+    });
+    await BLE.addListener('messageReceived', (evt) => { onMessageReceived(evt); });
+    await BLE.addListener('scanStopped', () => { bridge.scanning = false; onScanStopped(); });
+    await BLE.addListener('messageSent', (evt) => { onMessageSent(evt); });
+  }
+
+  const NajdaComms = {
+    startScan: async function (duration) {
+      duration = duration || 15000;
+      bridge.devices = [];
+      bridge.scanning = true;
+      if (BLE) { await BLE.startScan({ duration }); }
+      else { runSimScan(); }
+    },
+    stopScan: async function () {
+      bridge.scanning = false;
+      if (BLE) await BLE.stopScan();
+      onScanStopped();
+    },
+    connect: async function (address) {
+      if (BLE) {
+        await BLE.connect({ address });
+      } else {
+        var dev = bridge.devices.find(function(d){ return d.address === address; });
+        setTimeout(function() {
+          onConnected({ address: address, name: dev ? dev.name : 'Simulated Device', rssi: dev ? dev.rssi : -65, connected: true, simulated: true });
+        }, 600);
+      }
+    },
+    disconnect: async function (address) {
+      if (BLE) { await BLE.disconnect({ address }); }
+      else { onDisconnected({ address: address, connected: false }); }
+      delete bridge.connected[address];
+    },
+    sendMessage: async function (address, message, channel) {
+      channel = channel || 'direct';
+      var packet = buildPacket(message, channel);
+      if (BLE) {
+        var result = await BLE.sendMessage({ address: address, message: packet, channel: channel });
+        return result.queued;
+      } else {
+        simulateReply(address, message);
+        return true;
+      }
+    },
+    broadcast: async function (message, channel) {
+      channel = channel || 'mesh';
+      var packet = buildPacket(message, channel);
+      if (BLE) { return await BLE.broadcast({ message: packet, channel: channel }); }
+      else {
+        Object.keys(bridge.connected).forEach(function(address){ simulateReply(address, message); });
+        return { sentTo: Object.keys(bridge.connected).length };
+      }
+    },
+    getConnected: function () { return Object.values(bridge.connected); },
+    isNative: function () { return IS_NATIVE && BLE !== null; },
+    on: function (event, callback) {
+      if (!bridge.listeners[event]) bridge.listeners[event] = [];
+      bridge.listeners[event].push(callback);
+    },
+  };
+
+  function buildPacket(message, channel) {
+    return JSON.stringify({ v: 2, ch: channel, ts: Date.now(), m: message });
+  }
+
+  function parsePacket(raw) {
+    try {
+      var p = JSON.parse(raw);
+      return { channel: p.ch || 'direct', message: p.m || raw, ts: p.ts || Date.now() };
+    } catch (e) {
+      return { channel: 'direct', message: raw, ts: Date.now() };
+    }
+  }
+
+  function onDeviceFound(dev) {
+    emit('deviceFound', dev);
+    var idx = bridge.devices.length - 1;
+    if (typeof meshAddBlip === 'function') meshAddBlip(dev, idx);
+    if (typeof meshRenderDevList === 'function') meshRenderDevList();
+    if (typeof meshUpdateCounts === 'function') meshUpdateCounts();
+    if (typeof meshShowToast === 'function') meshShowToast('▶ FOUND: ' + dev.name);
+  }
+
+  function onConnected(evt) {
+    bridge.connected[evt.address] = evt;
+    emit('connected', evt);
+
+    var dot    = document.getElementById('mchDot');
+    var nameEl = document.getElementById('mchName');
+    var stats  = document.getElementById('mchStats');
+    var rssiEl = document.getElementById('mchRSSI');
+    var distEl = document.getElementById('mchDist');
+    var sigEl  = document.getElementById('mchSig');
+    var disc   = document.getElementById('mchDiscBtn');
+    var inp    = document.getElementById('meshChatInput');
+    var sb     = document.getElementById('meshSendBtn');
+
+    if (dot)    dot.style.background = '#00FF88';
+    if (nameEl) nameEl.textContent = evt.name;
+    if (stats)  stats.style.display = 'flex';
+    if (rssiEl && evt.rssi) rssiEl.textContent = evt.rssi + ' dBm';
+    if (distEl && evt.rssi) distEl.textContent = '~' + calcDist(evt.rssi) + 'm';
+    if (sigEl  && evt.rssi) { var s = sigInfo(evt.rssi); sigEl.textContent = s.txt; sigEl.style.color = s.color; }
+    if (disc)  disc.style.display = 'inline-block';
+    if (inp)   inp.disabled  = false;
+    if (sb)    sb.disabled   = false;
+    ['mTool_loc','mTool_sos','mTool_info'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.disabled = false;
+    });
+
+    if (typeof meshAddMsg === 'function') meshAddMsg('sys', '🔵 LINK ESTABLISHED → ' + evt.name + (evt.simulated ? ' [SIM]' : ' [LIVE BT]'));
+    meshUpdateStatusBar();
+    if (typeof meshShowToast === 'function') meshShowToast('✓ LINKED: ' + evt.name);
+    var cb = document.getElementById('meshToChatBtn');
+    if (cb) cb.style.display = 'block';
+
+    if (typeof meshRenderDevList === 'function') meshRenderDevList();
+  }
+
+  function onDisconnected(evt) {
+    emit('disconnected', evt);
+    delete bridge.connected[evt.address];
+
+    var dot    = document.getElementById('mchDot');
+    var nameEl = document.getElementById('mchName');
+    var stats  = document.getElementById('mchStats');
+    var disc   = document.getElementById('mchDiscBtn');
+    var inp    = document.getElementById('meshChatInput');
+    var sb     = document.getElementById('meshSendBtn');
+
+    if (dot)    dot.style.background = '#E63946';
+    if (nameEl) nameEl.textContent = 'NOT LINKED';
+    if (stats)  stats.style.display = 'none';
+    if (disc)   disc.style.display = 'none';
+    if (inp)    inp.disabled = true;
+    if (sb)     sb.disabled  = true;
+    ['mTool_loc','mTool_sos','mTool_info'].forEach(function(id){
+      var el = document.getElementById(id); if (el) el.disabled = true;
+    });
+
+    if (typeof meshAddMsg === 'function') meshAddMsg('sys', '🔴 LINK TERMINATED · ' + evt.address);
+    if (typeof meshShowToast === 'function') meshShowToast('LINK TERMINATED');
+    meshUpdateStatusBar();
+    if (typeof meshRenderDevList === 'function') meshRenderDevList();
+  }
+
+  function onMessageReceived(evt) {
+    var parsed = parsePacket(evt.payload);
+    emit('message', Object.assign({}, evt, parsed));
+
+    var rxEl = document.getElementById('mchRX');
+    if (rxEl) rxEl.textContent = parseInt(rxEl.textContent || '0') + 1;
+
+    if (typeof meshAddMsg === 'function') meshAddMsg('inc', parsed.message, evt.name || evt.address);
+
+    var mst = document.getElementById('mst-chat');
+    if (mst && !mst.textContent.includes('●')) mst.textContent = '💬 CHAT ●';
+  }
+
+  function onMessageSent(evt) { emit('sent', evt); }
+
+  function onScanStopped() {
+    bridge.scanning = false;
+    emit('scanStopped', {});
+    var btn = document.getElementById('meshScanBtn');
+    if (btn) { btn.classList.remove('scanning'); btn.textContent = '▶ SCAN FOR DEVICES'; btn.disabled = false; }
+    var mcMode = document.getElementById('mcMode');
+    if (mcMode) mcMode.textContent = 'IDLE';
+  }
+
+  /* ── Simulation ── */
+  var _simNames = ['NAJDA_' + rndStr(), 'NAJDA_' + rndStr(), 'Galaxy S24', 'iPhone 15', 'Redmi Note 13'];
+
+  function runSimScan() {
+    var count = 2 + Math.floor(Math.random() * 3);
+    var i = 0;
+    var interval = setInterval(function() {
+      if (!bridge.scanning || i >= count) { clearInterval(interval); onScanStopped(); return; }
+      var name = _simNames[i % _simNames.length];
+      var rssi = -40 - Math.floor(Math.random() * 48);
+      var addr = fakeAddr();
+      var dev  = { name: name, address: addr, rssi: rssi, isNajda: name.indexOf('NAJDA') > -1, distance: calcDist(rssi), simulated: true };
+      bridge.devices.push(dev);
+      onDeviceFound(dev);
+      i++;
+    }, 700);
+  }
+
+  function simulateReply(address, originalMsg) {
+    var dev = bridge.connected[address];
+    setTimeout(function() {
+      var typing = document.getElementById('meshTyping');
+      var typTxt = document.getElementById('meshTypingTxt');
+      if (typing) typing.style.display = 'flex';
+      if (typTxt) typTxt.textContent = (dev ? dev.name : 'PEER') + ' typing...';
+    }, 400);
+    var replies = ['COPY.','ROGER.','RECEIVED.','WILCO.','ACK.','NEGATIVE — say again.','AFFIRMATIVE.','STANDBY.'];
+    setTimeout(function() {
+      var typing = document.getElementById('meshTyping');
+      if (typing) typing.style.display = 'none';
+      onMessageReceived({
+        address: address,
+        name: dev ? dev.name : 'PEER',
+        payload: JSON.stringify({ v:2, ch:'direct', ts:Date.now(), m: replies[Math.floor(Math.random()*replies.length)] })
+      });
+    }, 1400 + Math.random() * 1400);
+  }
+
+  /* ── Patch mesh functions ── */
+  function patchMeshScreen() {
+    var tryPatch = function() {
+      if (!document.getElementById('screen-mesh')) { setTimeout(tryPatch, 200); return; }
+
+      window.meshStartScan = async function() {
+        var btn = document.getElementById('meshScanBtn');
+        if (btn) { btn.classList.add('scanning'); btn.textContent = '⟳ SCANNING...'; btn.disabled = true; }
+        var mcMode = document.getElementById('mcMode');
+        if (mcMode) mcMode.textContent = 'ACTIVE';
+        var blips = document.getElementById('meshBlips');
+        if (blips) blips.innerHTML = '';
+        bridge.devices = [];
+        if (typeof meshRenderDevList === 'function') meshRenderDevList();
+        await NajdaComms.startScan(15000);
+      };
+
+      window.meshStopScan = async function() {
+        await NajdaComms.stopScan();
+      };
+
+      window.meshConnect = async function(idx) {
+        var dev = bridge.devices[idx];
+        if (!dev) return;
+        if (typeof meshShowToast === 'function') meshShowToast('⟳ LINKING TO ' + dev.name + '...');
+        await NajdaComms.connect(dev.address);
+      };
+
+      window.meshDisconnect = async function() {
+        var peers = Object.keys(bridge.connected);
+        for (var i = 0; i < peers.length; i++) { await NajdaComms.disconnect(peers[i]); }
+      };
+
+      window.meshSendMessage = async function() {
+        var inp = document.getElementById('meshChatInput');
+        if (!inp) return;
+        var msg = inp.value.trim();
+        if (!msg) return;
+        var peers = Object.keys(bridge.connected);
+        if (peers.length === 0) { if (typeof meshShowToast === 'function') meshShowToast('NOT LINKED — go to RADAR tab'); return; }
+        if (typeof meshAddMsg === 'function') meshAddMsg('out', msg);
+        inp.value = ''; inp.style.height = '';
+        var txEl = document.getElementById('mchTX');
+        if (txEl) txEl.textContent = parseInt(txEl.textContent || '0') + 1;
+        for (var i = 0; i < peers.length; i++) { await NajdaComms.sendMessage(peers[i], msg); }
+      };
+
+      window.meshSendSOS = async function() {
+        if (!confirm('⚠ SEND SOS DISTRESS SIGNAL?\nTransmits to ALL linked devices immediately.')) return;
+        var msg = '🆘🆘🆘 EMERGENCY SOS — IMMEDIATE ASSISTANCE REQUIRED — ' + new Date().toLocaleTimeString();
+        if (typeof meshAddMsg === 'function') meshAddMsg('out', msg);
+        await NajdaComms.broadcast(msg, 'emergency');
+        if (typeof meshShowToast === 'function') meshShowToast('🆘 SOS TRANSMITTED TO ALL PEERS');
+      };
+
+      window.meshSendStatus = async function() {
+        var peers = Object.keys(bridge.connected);
+        if (peers.length === 0) return;
+        var statusMsg = '📊 STATUS: ' + (IS_NATIVE ? 'NATIVE BT' : 'SIM') + ' · ' + new Date().toLocaleTimeString();
+        if (typeof meshAddMsg === 'function') meshAddMsg('out', statusMsg);
+        await NajdaComms.broadcast(statusMsg, 'status');
+      };
+
+      meshUpdateStatusBar();
+      console.log('[NAJDA-BLE] Bridge active. Native=' + IS_NATIVE);
+    };
+    tryPatch();
+  }
+
+  function meshUpdateStatusBar() {
+    var bar = document.getElementById('meshStatusBar');
+    if (!bar) return;
+    var nativeTxt = IS_NATIVE ? 'BT: NATIVE' : 'BT: SIM';
+    var nativeCol = IS_NATIVE ? '#00FF88'    : '#FFB703';
+    var peers     = Object.values(bridge.connected);
+    var linkTxt   = peers.length > 0 ? 'LINK: ' + peers[0].name.substring(0,10) : 'LINK: NONE';
+    var linkCol   = peers.length > 0 ? '#00FF88' : 'var(--muted)';
+    bar.innerHTML = [
+      { dot: nativeCol,              txt: nativeTxt,    col: nativeCol  },
+      { dot: linkCol,                txt: linkTxt,      col: linkCol    },
+      { dot:'rgba(0,255,136,0.5)',   txt:'NO-INTERNET', col:'rgba(0,255,136,0.5)' },
+      { dot:'rgba(0,255,136,0.5)',   txt:'ENC:ON',      col:'rgba(0,255,136,0.5)' },
+    ].map(function(it){
+      return '<div class="msb-item"><div class="msb-dot" style="background:'+it.dot+'"></div><span class="msb-txt" style="color:'+it.col+'">'+it.txt+'</span></div>';
+    }).join('');
+  }
+
+  function emit(event, data) {
+    (bridge.listeners[event] || []).forEach(function(fn){ fn(data); });
+  }
+
+  function calcDist(rssi) {
+    if (!rssi) return 999;
+    var ratio = rssi / -59;
+    var d = ratio < 1 ? Math.pow(ratio,10) : (0.89976 * Math.pow(ratio,7.7095)) + 0.111;
+    return Math.max(1, Math.round(d * 10));
+  }
+  function sigInfo(rssi) {
+    if (rssi >= -50) return { color:'#00FF88', txt:'Excellent' };
+    if (rssi >= -60) return { color:'#00FF88', txt:'Good'      };
+    if (rssi >= -70) return { color:'#FFB703', txt:'Fair'      };
+    if (rssi >= -80) return { color:'#FF8C00', txt:'Weak'      };
+    return                 { color:'#E63946',  txt:'Very Weak' };
+  }
+  function rndStr() { return Math.random().toString(36).substr(2,4).toUpperCase(); }
+  function fakeAddr() {
+    return Array.from({length:6},function(){ return Math.floor(Math.random()*256).toString(16).padStart(2,'0'); }).join(':').toUpperCase();
+  }
+
+  window.NajdaComms = NajdaComms;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initBLEBridge);
+  } else {
+    initBLEBridge();
+  }
+
+})();
+</script>
+<!-- END NAJDA BLE BRIDGE -->
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').then(function(reg) {
+      console.log('NAJDA SW registered:', reg.scope);
+    }).catch(function(err) {
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+</script>
+</body>
+</html>
