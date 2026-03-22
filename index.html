@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <!-- NAJDA v5.1 - cache bust -->
 <html lang="en">
@@ -24,7 +26,17 @@ firebase.initializeApp({
   projectId: "najda-bf0f9",
   storageBucket: "najda-bf0f9.firebasestorage.app",
   messagingSenderId: "64740884103",
-  appId: "1:64740884103:web:17fd09afb03db5ed57c222"
+  appId: "1:64740884103:web:17fd09afb03db5ed57c222",
+  measurementId: "G-NHWW3FEWT2"
+});
+window.firebaseReady = true;
+firebase.auth().onAuthStateChanged(function(user) {
+  if (user && user.emailVerified) {
+    localStorage.setItem('najda_email', user.email);
+    localStorage.setItem('najda_verified', 'true');
+    localStorage.removeItem('najda_guest');
+  }
+  if (typeof updateProfileBtn === 'function') updateProfileBtn();
 });
 </script>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -327,12 +339,6 @@ function log(msg){
       font-size:11px; cursor:pointer; font-family:inherit;
     ">Browse without account →</button>
 
-    <button onclick="skipAuth()" style="
-      width:100%; padding:12px; background:transparent;
-      border:none; color:#8B949E;
-      font-size:11px; cursor:pointer; font-family:inherit;
-    ">Browse without account →</button>
-
     <div id="authError1" style="color:#E63946;font-size:11px;margin-top:10px;text-align:center;display:none;"></div>
     <div id="authLoading" style="display:none;text-align:center;margin-top:16px;">
       <div style="color:#8B949E;font-size:10px;letter-spacing:1px;" id="authLoadingTxt">SIGNING IN...</div>
@@ -371,13 +377,13 @@ function log(msg){
   </div>
 </div>
 
-<<script>
+<script>
 (function() {
-  // Show auth screen on startup unless already verified
+  // Check if already verified
   if (localStorage.getItem('najda_verified') === 'true') {
     document.getElementById('authScreen').style.display = 'none';
+    return;
   }
-  // Otherwise auth screen stays visible (display:flex from HTML)
 
   function showError(step, msg) {
     var el = document.getElementById('authError' + step);
@@ -395,10 +401,8 @@ function log(msg){
   }
 
   window.skipAuth = function() {
-    // Browse only — submissions will still require sign in
+    localStorage.setItem('najda_verified', 'true');
     localStorage.setItem('najda_guest', 'true');
-    localStorage.removeItem('najda_verified');
-    localStorage.removeItem('najda_email');
     document.getElementById('authScreen').style.display = 'none';
   };
 
@@ -1512,10 +1516,23 @@ function renderContacts() {
 // ═══════════════════════════════════════
 function requireAuth() {
   const email = localStorage.getItem('najda_email');
-  const guest = localStorage.getItem('najda_guest');
   const verified = localStorage.getItem('najda_verified');
-  // Block if: no email, is guest, or not verified
-  const isLoggedIn = email && verified === 'true' && guest !== 'true';
+  const guest = localStorage.getItem('najda_guest');
+
+  // Check Firebase current user as extra layer
+  let fbOK = false;
+  try {
+    const u = firebase.auth().currentUser;
+    if (u && u.emailVerified) {
+      fbOK = true;
+      localStorage.setItem('najda_email', u.email);
+      localStorage.setItem('najda_verified', 'true');
+      localStorage.removeItem('najda_guest');
+    }
+  } catch(e) {}
+
+  const isLoggedIn = fbOK || (email && verified === 'true' && guest !== 'true');
+
   if (!isLoggedIn) {
     localStorage.removeItem('najda_verified');
     localStorage.removeItem('najda_guest');
@@ -1526,12 +1543,11 @@ function requireAuth() {
     setTimeout(function() {
       var msg = document.getElementById('authError1');
       if (msg) {
-        msg.textContent = lang === 'ar'
-          ? '⚠ يجب تسجيل الدخول لتقديم المساعدة'
-          : '⚠ Please sign in to submit aid';
+        msg.textContent = '⚠ Please sign in to submit. Free & takes 30 seconds!';
         msg.style.display = 'block';
+        msg.style.color = '#E63946';
       }
-    }, 300);
+    }, 200);
     return false;
   }
   return true;
@@ -1561,7 +1577,7 @@ async function submitAid() {
       items:document.getElementById('a_items').value.trim(),
       phone, org:document.getElementById('a_by').value.trim()||'Volunteer',
       note:document.getElementById('a_note').value.trim(),
-      added_by:currentUser?currentUser.email:(document.getElementById('a_by').value.trim()||'volunteer'),
+      added_by:(localStorage.getItem('najda_email') || 'unknown'),
       verified:false, lat, lng,
     });
     if(error) throw error;
@@ -2155,16 +2171,16 @@ async function signUp() {
 
 async function signOut() {
   try { await firebase.auth().signOut(); } catch(e) {}
+  try { await db.auth.signOut(); } catch(e) {}
   currentUser = null;
   localStorage.removeItem('najda_verified');
   localStorage.removeItem('najda_email');
   localStorage.removeItem('najda_guest');
-  document.getElementById('accountDashView').style.display='none';
-  document.getElementById('accountLoginView').style.display='block';
   closeAccount();
   updateProfileBtn();
-  // Show auth screen
   document.getElementById('authScreen').style.display = 'flex';
+  document.getElementById('authStep1').style.display = 'block';
+  document.getElementById('authStep2').style.display = 'none';
 }
 
 function showAccError(msg, success=false) {
