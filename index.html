@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <!-- NAJDA v5.1 - cache bust -->
 <html lang="en">
@@ -28,8 +30,6 @@ firebase.initializeApp({
   measurementId: "G-NHWW3FEWT2"
 });
 window.firebaseReady = true;
-
-// Auto-sync Firebase auth state with localStorage
 firebase.auth().onAuthStateChanged(function(user) {
   if (user && user.emailVerified) {
     localStorage.setItem('najda_email', user.email);
@@ -375,10 +375,13 @@ function log(msg){
 
 <<script>
 (function() {
-  // Check if already verified
+  // Always hide auth screen on startup - user can browse freely
+  // Auth is only required when submitting
+  document.getElementById('authScreen').style.display = 'none';
+  
+  // Restore session if previously logged in
   if (localStorage.getItem('najda_verified') === 'true') {
-    document.getElementById('authScreen').style.display = 'none';
-    return;
+    return; // Already authenticated
   }
 
   function showError(step, msg) {
@@ -396,11 +399,7 @@ function log(msg){
     if (txt && msg) txt.textContent = msg;
   }
 
-  window.skipAuth = function() {
-    localStorage.setItem('najda_verified', 'true');
-    localStorage.setItem('najda_guest', 'true');
-    document.getElementById('authScreen').style.display = 'none';
-  };
+
 
   window.backToLogin = function() {
     document.getElementById('authStep1').style.display = 'block';
@@ -1511,23 +1510,25 @@ function renderContacts() {
 // SUBMIT FORMS
 // ═══════════════════════════════════════
 function requireAuth() {
-  // Check localStorage (Firebase auth)
   const email = localStorage.getItem('najda_email');
   const verified = localStorage.getItem('najda_verified');
   const guest = localStorage.getItem('najda_guest');
   
-  // Also check Firebase current user as backup
-  let firebaseUser = null;
-  try { firebaseUser = firebase.auth().currentUser; } catch(e) {}
+  // Also check Firebase
+  let fbVerified = false;
+  try {
+    const u = firebase.auth().currentUser;
+    if (u && u.emailVerified) {
+      fbVerified = true;
+      localStorage.setItem('najda_email', u.email);
+      localStorage.setItem('najda_verified', 'true');
+      localStorage.removeItem('najda_guest');
+    }
+  } catch(e) {}
   
-  const isLoggedIn = (email && verified === 'true' && guest !== 'true') || 
-                     (firebaseUser && firebaseUser.emailVerified);
+  const isLoggedIn = fbVerified || (email && verified === 'true' && guest !== 'true');
   
   if (!isLoggedIn) {
-    // Clear any partial auth state
-    localStorage.removeItem('najda_verified');
-    localStorage.removeItem('najda_guest');
-    localStorage.removeItem('najda_email');
     // Show auth screen
     document.getElementById('authScreen').style.display = 'flex';
     document.getElementById('authStep1').style.display = 'block';
@@ -1535,7 +1536,7 @@ function requireAuth() {
     setTimeout(function() {
       var msg = document.getElementById('authError1');
       if (msg) {
-        msg.textContent = '⚠ Please sign in to submit. It only takes 30 seconds!';
+        msg.textContent = '⚠ Please sign in to submit. Free account — takes 30 seconds!';
         msg.style.display = 'block';
         msg.style.color = '#E63946';
       }
@@ -1569,7 +1570,7 @@ async function submitAid() {
       items:document.getElementById('a_items').value.trim(),
       phone, org:document.getElementById('a_by').value.trim()||'Volunteer',
       note:document.getElementById('a_note').value.trim(),
-      added_by:(localStorage.getItem('najda_email') || (currentUser?currentUser.email:null) || 'unknown'),
+      added_by:currentUser?currentUser.email:(document.getElementById('a_by').value.trim()||'volunteer'),
       verified:false, lat, lng,
     });
     if(error) throw error;
@@ -2163,16 +2164,16 @@ async function signUp() {
 
 async function signOut() {
   try { await firebase.auth().signOut(); } catch(e) {}
-  try { await db.auth.signOut(); } catch(e) {}
   currentUser = null;
   localStorage.removeItem('najda_verified');
   localStorage.removeItem('najda_email');
   localStorage.removeItem('najda_guest');
-  updateProfileBtn();
+  document.getElementById('accountDashView').style.display='none';
+  document.getElementById('accountLoginView').style.display='block';
   closeAccount();
+  updateProfileBtn();
+  // Show auth screen
   document.getElementById('authScreen').style.display = 'flex';
-  document.getElementById('authStep1').style.display = 'block';
-  document.getElementById('authStep2').style.display = 'none';
 }
 
 function showAccError(msg, success=false) {
@@ -2226,33 +2227,21 @@ async function deleteMyAid(id) {
 }
 
 function openAccount() {
-  // Sync Firebase state with localStorage
-  try {
-    const fbUser = firebase.auth().currentUser;
-    if (fbUser && fbUser.emailVerified && !localStorage.getItem('najda_email')) {
-      localStorage.setItem('najda_email', fbUser.email);
-      localStorage.setItem('najda_verified', 'true');
-      localStorage.removeItem('najda_guest');
-      updateProfileBtn();
-    }
-  } catch(e) {}
-  
   const email = localStorage.getItem('najda_email');
   const guest = localStorage.getItem('najda_guest');
   
   if (email && guest !== 'true') {
+    // Already logged in — show profile modal
     document.getElementById('accountModal').classList.add('show');
-    const emailEl = document.getElementById('accUserEmail');
-    if (emailEl) emailEl.textContent = email;
+    document.getElementById('accUserEmail').textContent = email;
     document.getElementById('accountDashView').style.display = 'block';
     document.getElementById('accountLoginView').style.display = 'none';
     loadMySubmissions();
   } else {
+    // Not logged in — show auth screen
     localStorage.removeItem('najda_verified');
     localStorage.removeItem('najda_guest');
     document.getElementById('authScreen').style.display = 'flex';
-    document.getElementById('authStep1').style.display = 'block';
-    document.getElementById('authStep2').style.display = 'none';
   }
 }
 function closeAccount() { document.getElementById('accountModal').classList.remove('show'); }
@@ -3332,16 +3321,6 @@ if (document.readyState === 'loading') {
   <div class="modal" style="max-height:85vh;overflow-y:auto;">
     <div id="accountLoginView">
       <div class="modal-title" style="color:var(--blue)">👤 MY ACCOUNT</div>
-      <div class="modal-sub" style="margin-bottom:20px">Sign in to manage your submissions</div>
-      <button onclick="closeAccount();document.getElementById('authScreen').style.display='flex';" style="
-        width:100%;padding:14px;background:var(--red);border:none;border-radius:10px;
-        color:#fff;font-size:13px;font-weight:700;letter-spacing:2px;cursor:pointer;
-        font-family:var(--mono);margin-bottom:10px;
-      ">SIGN IN / CREATE ACCOUNT</button>
-      <div style="font-size:10px;color:var(--muted);text-align:center;margin-top:8px;">
-        Free account · Email verification · Your submissions stay private
-      </div>
-    </div>
       <div class="modal-sub">Sign in to manage your submissions</div>
       <div style="margin-bottom:8px">
         <label class="fl">EMAIL</label>
